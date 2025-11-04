@@ -14,7 +14,10 @@ const __dirname = path.dirname(__filename);
  * Create a test database with a unique name
  */
 export function createTestDatabase(): { db: DatabaseService; dbPath: string } {
-  const testDbPath = path.join(__dirname, `../../test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`);
+  const testDbPath = path.join(
+    __dirname,
+    `../../test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`
+  );
 
   // Reset singleton to ensure clean state
   DatabaseService.resetInstance();

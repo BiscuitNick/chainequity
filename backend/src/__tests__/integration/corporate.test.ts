@@ -3,7 +3,7 @@
  */
 
 import { createTestDatabase, cleanupTestDatabase, seedTestData } from '../testUtils.js';
-import { DatabaseService } from '../../db/database.js';
+import { DatabaseService as _DatabaseService } from '../../db/database.js';
 
 // Create test database BEFORE importing app
 const testDb = createTestDatabase();
@@ -50,17 +50,13 @@ describe('Corporate Actions API Integration Tests', () => {
 
     it('should apply limit parameter', async () => {
       const limit = 5;
-      const response = await request(app)
-        .get(`/api/corporate/history?limit=${limit}`)
-        .expect(200);
+      const response = await request(app).get(`/api/corporate/history?limit=${limit}`).expect(200);
 
       expect(response.body.length).toBeLessThanOrEqual(limit);
     });
 
     it('should return actions with required fields', async () => {
-      const response = await request(app)
-        .get('/api/corporate/history?limit=1')
-        .expect(200);
+      const response = await request(app).get('/api/corporate/history?limit=1').expect(200);
 
       if (response.body.length > 0) {
         const action = response.body[0];
@@ -92,17 +88,13 @@ describe('Corporate Actions API Integration Tests', () => {
 
     it('should apply limit parameter', async () => {
       const limit = 2;
-      const response = await request(app)
-        .get(`/api/corporate/splits?limit=${limit}`)
-        .expect(200);
+      const response = await request(app).get(`/api/corporate/splits?limit=${limit}`).expect(200);
 
       expect(response.body.length).toBeLessThanOrEqual(limit);
     });
 
     it('should include old_value and new_value for splits', async () => {
-      const response = await request(app)
-        .get('/api/corporate/splits?limit=1')
-        .expect(200);
+      const response = await request(app).get('/api/corporate/splits?limit=1').expect(200);
 
       if (response.body.length > 0) {
         const split = response.body[0];
@@ -144,9 +136,7 @@ describe('Corporate Actions API Integration Tests', () => {
 
     it('should apply limit parameter', async () => {
       const limit = 1;
-      const response = await request(app)
-        .get(`/api/corporate/symbols?limit=${limit}`)
-        .expect(200);
+      const response = await request(app).get(`/api/corporate/symbols?limit=${limit}`).expect(200);
 
       expect(response.body.length).toBeLessThanOrEqual(limit);
     });
@@ -184,27 +174,21 @@ describe('Corporate Actions API Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid limit parameters gracefully', async () => {
-      const response = await request(app)
-        .get('/api/corporate/history?limit=invalid')
-        .expect(200);
+      const response = await request(app).get('/api/corporate/history?limit=invalid').expect(200);
 
       // Should use default limit and still return valid data
       expect(Array.isArray(response.body)).toBe(true);
     });
 
     it('should handle negative limit values', async () => {
-      const response = await request(app)
-        .get('/api/corporate/history?limit=-5')
-        .expect(200);
+      const response = await request(app).get('/api/corporate/history?limit=-5').expect(200);
 
       // Should use default limit
       expect(Array.isArray(response.body)).toBe(true);
     });
 
     it('should return 404 for non-existent endpoints', async () => {
-      await request(app)
-        .get('/api/corporate/nonexistent')
-        .expect(404);
+      await request(app).get('/api/corporate/nonexistent').expect(404);
     });
   });
 });

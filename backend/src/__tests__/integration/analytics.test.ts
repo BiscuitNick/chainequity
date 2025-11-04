@@ -3,7 +3,7 @@
  */
 
 import { createTestDatabase, cleanupTestDatabase, seedTestData } from '../testUtils.js';
-import { DatabaseService } from '../../db/database.js';
+import { DatabaseService as _DatabaseService } from '../../db/database.js';
 
 // Create test database BEFORE importing app
 const testDb = createTestDatabase();
@@ -143,26 +143,20 @@ describe('Analytics API Integration Tests', () => {
 
     it('should apply limit parameter', async () => {
       const limit = 1;
-      const response = await request(app)
-        .get(`/api/analytics/events?limit=${limit}`)
-        .expect(200);
+      const response = await request(app).get(`/api/analytics/events?limit=${limit}`).expect(200);
 
       expect(response.body.length).toBeLessThanOrEqual(limit);
     });
 
     it('should support offset parameter', async () => {
       const offset = 1;
-      const response = await request(app)
-        .get(`/api/analytics/events?offset=${offset}`)
-        .expect(200);
+      const response = await request(app).get(`/api/analytics/events?offset=${offset}`).expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
     });
 
     it('should return events with required fields', async () => {
-      const response = await request(app)
-        .get('/api/analytics/events?limit=1')
-        .expect(200);
+      const response = await request(app).get('/api/analytics/events?limit=1').expect(200);
 
       if (response.body.length > 0) {
         const event = response.body[0];
@@ -176,18 +170,14 @@ describe('Analytics API Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid limit parameters', async () => {
-      const response = await request(app)
-        .get('/api/analytics/events?limit=invalid')
-        .expect(200);
+      const response = await request(app).get('/api/analytics/events?limit=invalid').expect(200);
 
       // Should use default limit
       expect(Array.isArray(response.body)).toBe(true);
     });
 
     it('should return 404 for non-existent endpoints', async () => {
-      await request(app)
-        .get('/api/analytics/nonexistent')
-        .expect(404);
+      await request(app).get('/api/analytics/nonexistent').expect(404);
     });
   });
 });

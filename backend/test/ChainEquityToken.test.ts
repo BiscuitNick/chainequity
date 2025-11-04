@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import hre from 'hardhat';
-import { parseEther, parseUnits, getAddress, Address } from 'viem';
+import { parseEther, getAddress, Address } from 'viem';
 
 describe('ChainEquityToken', function () {
   let token: any;
@@ -184,7 +184,7 @@ describe('ChainEquityToken', function () {
     });
 
     it('Should emit TransferBlocked event when blocked', async function () {
-      const hash = await token.write
+      await token.write
         .transfer([addr3.account.address, TRANSFER_AMOUNT], { account: addr1.account })
         .catch((e: any) => {
           // Expected to fail - just verify it rejects

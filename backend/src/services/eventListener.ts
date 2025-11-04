@@ -5,7 +5,7 @@
 import { getAlchemy, ChainEquityTokenABI } from '../config/alchemy.config.js';
 import { config } from '../config/env.js';
 import { getDatabase } from '../db/database.js';
-import type { EventType } from '../types/database.js';
+import type { EventType as _EventType } from '../types/database.js';
 
 export class EventListenerService {
   private alchemy: ReturnType<typeof getAlchemy>;

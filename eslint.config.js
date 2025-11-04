@@ -7,7 +7,24 @@ import prettierPlugin from 'eslint-plugin-prettier';
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'build/',
+      'coverage/',
+      'artifacts/',
+      'cache/',
+      'typechain-types/',
+      '*.config.js',
+      '*.config.ts',
+      'backend/node_modules/',
+      'backend/dist/',
+      'simple-test.js',
+      'backend/jest.config.js',
+    ],
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -61,26 +78,31 @@ export default [
     },
   },
   {
-    // Test files
-    files: ['**/*.test.ts', '**/*.spec.ts', '**/test/**/*.ts'],
+    // Test files - add Jest/Mocha globals
+    files: [
+      '**/*.test.ts',
+      '**/*.spec.ts',
+      '**/test/**/*.ts',
+      '**/__tests__/**/*.ts',
+    ],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        test: 'readonly',
+        jest: 'readonly',
+      },
+    },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
       'no-console': 'off',
+      'no-undef': 'off',
     },
-  },
-  {
-    ignores: [
-      'node_modules/',
-      'dist/',
-      'build/',
-      'coverage/',
-      'artifacts/',
-      'cache/',
-      'typechain-types/',
-      '*.config.js',
-      '*.config.ts',
-      'backend/node_modules/',
-      'backend/dist/',
-    ],
   },
 ];

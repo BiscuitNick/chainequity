@@ -2,7 +2,7 @@
  * Express server for ChainEquity backend
  */
 
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -46,7 +46,7 @@ import captableRoutes from './api/captable.routes.js';
 import analyticsRoutes from './api/analytics.routes.js';
 
 // Import middleware
-import { apiLimiter, strictLimiter, exportLimiter, readLimiter } from './middleware/rateLimit.js';
+import { apiLimiter } from './middleware/rateLimit.js';
 
 // ============================================
 // Routes
@@ -108,7 +108,7 @@ let server: any;
 function startServer() {
   try {
     // Initialize database
-    const db = getDatabase(config.databasePath);
+    getDatabase(config.databasePath);
     console.log('Database initialized');
 
     // Start server

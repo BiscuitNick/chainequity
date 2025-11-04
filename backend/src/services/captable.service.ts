@@ -7,6 +7,8 @@
 
 import { getDatabase } from '../db/database.js';
 import { ethers } from 'ethers';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Cap-table entry
@@ -373,9 +375,6 @@ export class CapTableService {
    * @param filename - Output filename
    */
   exportToFile(format: 'csv' | 'json', filename: string): void {
-    const fs = require('fs');
-    const path = require('path');
-
     const capTable = this.generateCapTable();
 
     let content: string;

@@ -54,7 +54,7 @@ export class DatabaseService {
     if (DatabaseService.instance) {
       try {
         DatabaseService.instance.close();
-      } catch (error) {
+      } catch {
         // Ignore errors when closing
       }
       DatabaseService.instance = null as any;

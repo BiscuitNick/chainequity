@@ -25,7 +25,7 @@ async function main() {
 
   // Initialize database (this will create the schema)
   console.log('\n🗄️  Initializing database schema...');
-  const db = getDatabase();
+  getDatabase();
 
   console.log('✅ Database initialized successfully');
 

@@ -64,7 +64,7 @@ async function main() {
       '(chainId:',
       network.chainId.toString() + ')'
     );
-  } catch (error) {
+  } catch {
     console.error('❌ Failed to connect to Hardhat node');
     console.error('   Make sure Hardhat node is running: npx hardhat node');
     process.exit(1);
@@ -92,7 +92,7 @@ async function main() {
     console.log('\n✅ Contract verified:');
     console.log('   Name:', name);
     console.log('   Symbol:', symbol);
-  } catch (error) {
+  } catch {
     console.error('❌ Contract not found at address');
     console.error('   Redeploy: npx hardhat run scripts/deploy-production.ts --network localhost');
     process.exit(1);

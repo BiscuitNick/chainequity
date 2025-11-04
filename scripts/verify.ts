@@ -48,8 +48,8 @@ function getContractAddress(networkName: string): string {
   throw new Error('Contract address not found. Please provide it as an argument or deploy first.');
 }
 
-// Get deployer address
-function getDeployerAddress(): string {
+// Get deployer address - unused but kept for potential future use
+function _getDeployerAddress(): string {
   if (!process.env.DEPLOYER_PRIVATE_KEY) {
     throw new Error('DEPLOYER_PRIVATE_KEY not set in .env');
   }
@@ -89,7 +89,6 @@ async function main() {
   // For ChainEquityToken: constructor(string name, string symbol, address initialOwner)
   const deploymentFile = path.join(process.cwd(), 'deployments', `${networkName}-deployment.json`);
 
-  const deployerAddress = '';
   if (fs.existsSync(deploymentFile)) {
     const deployment = JSON.parse(fs.readFileSync(deploymentFile, 'utf8'));
     console.log('📅 Deployed at:', deployment.deployedAt);

@@ -87,7 +87,7 @@ async function main() {
   console.log('Test 5: Ownership Distribution Analysis');
   console.log('='.repeat(60));
 
-  const distribution = capTableService.getOwnershipDistribution();
+  const _distribution = capTableService.getOwnershipDistribution();
 
   // Test 6: Export to CSV
   console.log('\n' + '='.repeat(60));

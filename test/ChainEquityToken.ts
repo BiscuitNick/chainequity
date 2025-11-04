@@ -6,10 +6,10 @@ import { parseEther, getAddress, type Address } from 'viem';
 describe('ChainEquityToken', async function () {
   const connection = await network.connect();
   const { viem } = connection;
-  const publicClient = await viem.getPublicClient();
+  const _publicClient = await viem.getPublicClient();
 
   let token: any;
-  let tokenAddress: Address;
+  let _tokenAddress: Address;
   let owner: any;
   let addr1: any;
   let addr2: any;

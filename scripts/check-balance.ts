@@ -50,10 +50,6 @@ async function main() {
   console.log('   Wei:', balance.toString());
   console.log('   Tokens:', ethers.formatEther(balance));
 
-  // Get the ACTUAL stored balance (before multiplier)
-  const abi = ['function balanceOf(address) view returns (uint256)'];
-  const erc20 = new ethers.Contract(contractAddress, abi, provider);
-
   // Call the parent ERC20's balanceOf directly via low-level call
   const slot = ethers.solidityPackedKeccak256(['uint256', 'uint256'], [address, 0]);
   const rawBalanceHex = await provider.getStorage(contractAddress, slot);

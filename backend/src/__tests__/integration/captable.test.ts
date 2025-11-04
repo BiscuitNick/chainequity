@@ -3,7 +3,7 @@
  */
 
 import { createTestDatabase, cleanupTestDatabase, seedTestData } from '../testUtils.js';
-import { DatabaseService } from '../../db/database.js';
+import { DatabaseService as _DatabaseService } from '../../db/database.js';
 
 // Create test database BEFORE importing app
 const testDb = createTestDatabase();
@@ -41,9 +41,7 @@ describe('Cap Table API Integration Tests', () => {
     });
 
     it('should apply limit parameter', async () => {
-      const response = await request(app)
-        .get('/api/captable?limit=1')
-        .expect(200);
+      const response = await request(app).get('/api/captable?limit=1').expect(200);
 
       expect(response.body.holders.length).toBeLessThanOrEqual(1);
     });
@@ -92,17 +90,13 @@ describe('Cap Table API Integration Tests', () => {
     });
 
     it('should apply pagination', async () => {
-      const response = await request(app)
-        .get('/api/captable/holders?limit=1')
-        .expect(200);
+      const response = await request(app).get('/api/captable/holders?limit=1').expect(200);
 
       expect(response.body.length).toBeLessThanOrEqual(1);
     });
 
     it('should return holders sorted by balance descending', async () => {
-      const response = await request(app)
-        .get('/api/captable/holders')
-        .expect(200);
+      const response = await request(app).get('/api/captable/holders').expect(200);
 
       // Verify descending order
       for (let i = 1; i < response.body.length; i++) {
@@ -126,19 +120,13 @@ describe('Cap Table API Integration Tests', () => {
     });
 
     it('should validate count parameter', async () => {
-      await request(app)
-        .get('/api/captable/top/0')
-        .expect(400);
+      await request(app).get('/api/captable/top/0').expect(400);
 
-      await request(app)
-        .get('/api/captable/top/-1')
-        .expect(400);
+      await request(app).get('/api/captable/top/-1').expect(400);
     });
 
     it('should handle count larger than holder count', async () => {
-      const response = await request(app)
-        .get('/api/captable/top/1000')
-        .expect(200);
+      const response = await request(app).get('/api/captable/top/1000').expect(200);
 
       // Should return all holders, not error
       expect(Array.isArray(response.body)).toBe(true);
@@ -147,18 +135,14 @@ describe('Cap Table API Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid query parameters gracefully', async () => {
-      const response = await request(app)
-        .get('/api/captable?limit=invalid')
-        .expect(200);
+      const response = await request(app).get('/api/captable?limit=invalid').expect(200);
 
       // Should use default limit and still return valid data
       expect(response.body).toHaveProperty('holders');
     });
 
     it('should return 404 for non-existent endpoints', async () => {
-      await request(app)
-        .get('/api/captable/nonexistent')
-        .expect(404);
+      await request(app).get('/api/captable/nonexistent').expect(404);
     });
   });
 });

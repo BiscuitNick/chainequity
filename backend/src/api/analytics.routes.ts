@@ -156,13 +156,13 @@ router.get('/distribution', async (req: Request, res: Response, next: NextFuncti
       return balanceA > balanceB ? 1 : balanceA < balanceB ? -1 : 0;
     });
 
-    let cumulativeSum = 0;
+    let _cumulativeSum = 0;
     let giniNumerator = 0;
     const totalSupplyNum = parseFloat(capTable.totalSupplyFormatted);
 
     for (let i = 0; i < sortedEntries.length; i++) {
       const balance = parseFloat(sortedEntries[i].balanceFormatted);
-      cumulativeSum += balance;
+      _cumulativeSum += balance;
       giniNumerator += (i + 1) * balance;
     }
 
