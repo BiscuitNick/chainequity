@@ -621,7 +621,7 @@
           8,
           9
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -629,7 +629,7 @@
             "description": "Implement comprehensive unit tests for ChainEquityToken.sol achieving 100% code coverage, testing all contract functions, edge cases, and security scenarios",
             "dependencies": [],
             "details": "Create test/unit/ChainEquityToken.test.ts using Hardhat and Chai. Test allowlist management (approveWallet, revokeWallet), transfer restrictions with approved and non-approved addresses, minting functionality with ownership checks, virtual stock splits maintaining proportional ownership, symbol and name changes, edge cases including zero balances, maximum uint256 values, and reentrancy protection. Include negative test cases for unauthorized access and invalid parameters. Generate coverage report to ensure 100% line, branch, and function coverage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Use Hardhat test framework with Chai assertions, implement beforeEach hooks for clean contract deployment, use expect.to.be.revertedWith for error testing, generate coverage report with solidity-coverage plugin"
           },
           {
@@ -808,7 +808,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T02:07:35.583Z",
-      "updated": "2025-11-04T18:34:26.399Z",
+      "updated": "2025-11-04T19:57:34.452Z",
       "description": "Tasks for master context"
     }
   }

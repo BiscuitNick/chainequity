@@ -1,9 +1,10 @@
 import type { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox-viem";
+import hardhatToolboxViem from "@nomicfoundation/hardhat-toolbox-viem";
 import "dotenv/config";
 import { configVariable } from "hardhat/config";
 
 const config: HardhatUserConfig = {
+  plugins: [hardhatToolboxViem],
   solidity: {
     profiles: {
       default: {
@@ -25,6 +26,9 @@ const config: HardhatUserConfig = {
         },
       },
     },
+  },
+  paths: {
+    tests: "./test",
   },
   networks: {
     localhost: {
