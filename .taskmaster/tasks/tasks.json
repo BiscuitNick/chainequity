@@ -651,7 +651,7 @@
               1
             ],
             "details": "Configure Hardhat gas reporter plugin in hardhat.config.ts, create scripts/gas-benchmark.ts to systematically test gas consumption for all operations including transfers, minting, allowlist updates, and stock splits. Generate GAS_REPORT.md with tabulated results showing min/max/average gas costs per operation. Verify all standard transfers stay under 100k gas limit. Include gas optimization recommendations and comparison with standard ERC-20 implementations. Set up CI pipeline to run gas benchmarks on pull requests.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Use hardhat-gas-reporter for automated measurements, create benchmark scenarios with varying data sizes, compare results against gas targets defined in requirements"
           },
           {
@@ -664,7 +664,7 @@
               3
             ],
             "details": "Write README.md with project overview, quick start guide, installation steps, configuration instructions, and usage examples. Create ARCHITECTURE.md with system design diagrams using Mermaid, component interactions, data flow diagrams, and deployment architecture. Document all API endpoints in API.md with request/response schemas, authentication details, and example curl commands. Maintain DECISIONS.md log explaining key technical choices, trade-offs, and rationale. Add DISCLAIMER.md with legal and regulatory considerations for tokenized securities. Include code comments and JSDoc/NatSpec documentation throughout the codebase.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Use markdown linters for formatting consistency, validate all code examples execute correctly, ensure API documentation matches actual implementation, review for completeness and clarity"
           },
           {
@@ -808,7 +808,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T02:07:35.583Z",
-      "updated": "2025-11-04T20:35:45.567Z",
+      "updated": "2025-11-04T21:51:16.102Z",
       "description": "Tasks for master context"
     }
   }
