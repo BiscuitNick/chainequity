@@ -4,8 +4,8 @@
  */
 
 import Database from 'better-sqlite3';
-import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, mkdirSync, existsSync } from 'fs';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import type {
   Event,
@@ -19,18 +19,28 @@ import type {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Get the project root (go up from backend/src/db/)
+const PROJECT_ROOT = resolve(__dirname, '../../..');
+const DEFAULT_DB_PATH = join(PROJECT_ROOT, 'backend/data/chainequity.db');
+
 export class DatabaseService {
   private static instance: DatabaseService;
   private db: Database.Database;
 
   private constructor(dbPath: string) {
+    // Ensure the directory exists
+    const dbDir = dirname(dbPath);
+    if (!existsSync(dbDir)) {
+      mkdirSync(dbDir, { recursive: true });
+    }
+
     this.db = new Database(dbPath, { verbose: console.log });
     this.db.pragma('journal_mode = WAL'); // Write-Ahead Logging for better concurrency
     this.db.pragma('foreign_keys = ON');
     this.initialize();
   }
 
-  public static getInstance(dbPath: string = './data/chainequity.db'): DatabaseService {
+  public static getInstance(dbPath: string = DEFAULT_DB_PATH): DatabaseService {
     if (!DatabaseService.instance) {
       DatabaseService.instance = new DatabaseService(dbPath);
     }
@@ -74,6 +84,19 @@ export class DatabaseService {
       event.data || null,
       event.timestamp
     );
+  }
+
+  /**
+   * Get event by transaction hash
+   */
+  public getEventByTxHash(txHash: string): Event | undefined {
+    const stmt = this.db.prepare(`
+      SELECT * FROM events
+      WHERE transaction_hash = ?
+      LIMIT 1
+    `);
+
+    return stmt.get(txHash) as Event | undefined;
   }
 
   /**

@@ -471,15 +471,14 @@ export class IndexerService {
       }
 
       this.db.insertEvent({
-        event_type: event.eventType,
+        event_type: event.eventType as any,
         transaction_hash: event.transactionHash,
         block_number: event.blockNumber,
-        log_index: event.logIndex,
         from_address: event.fromAddress || null,
         to_address: event.toAddress || null,
-        value: event.value || null,
+        amount: event.value || null,
         data: JSON.stringify(event.data),
-        timestamp: event.timestamp || null,
+        timestamp: event.timestamp || 0,
       });
 
       console.log(`   ✅ Event saved to database`);
@@ -500,10 +499,15 @@ export class IndexerService {
     try {
       const balance = await this.contract.balanceOf(address);
 
+      const currentBlock = this.wsProvider
+        ? await this.wsProvider.getBlockNumber()
+        : 0;
+
       this.db.upsertBalance({
         address: address.toLowerCase(),
         balance: balance.toString(),
-        last_updated: Date.now(),
+        last_updated_block: currentBlock,
+        last_updated_timestamp: Date.now(),
       });
 
       console.log(`   💰 Updated balance for ${address}: ${ethers.formatEther(balance)}`);

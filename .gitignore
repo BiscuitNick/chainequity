@@ -1,5 +1,9 @@
-# Environment variables
+# Environment variables (including all variants and subdirectories)
 .env
+.env.*
+**/.env
+**/.env.*
+!.env.example
 
 # Node modules
 node_modules/
