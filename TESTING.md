@@ -331,6 +331,54 @@ This is expected for some test cases (like transferring to non-approved addresse
 
 ---
 
+## 🌐 Deploying to Polygon Amoy Testnet
+
+### Prerequisites:
+1. **Get Alchemy API Key** (free): https://www.alchemy.com/
+2. **Get test MATIC**: https://faucet.polygon.technology/
+3. **Get Polygonscan API Key** (free): https://polygonscan.com/apis
+
+### Step 1: Configure Environment
+
+Add to your `.env` file:
+```bash
+ALCHEMY_API_KEY=your_alchemy_api_key
+DEPLOYER_PRIVATE_KEY=0x_your_wallet_private_key
+POLYGONSCAN_API_KEY=your_polygonscan_api_key
+```
+
+### Step 2: Deploy to Testnet
+
+```bash
+npx hardhat compile
+npx hardhat run scripts/deploy-production.ts --network polygonAmoy
+```
+
+This will:
+- Deploy ChainEquityToken to Polygon Amoy
+- Save contract address to `.env`
+- Save deployment details to `deployments/polygonAmoy-deployment.json`
+
+### Step 3: Verify on Polygonscan
+
+```bash
+npx hardhat run scripts/verify.ts --network polygonAmoy
+```
+
+This will:
+- Automatically verify your contract on Polygonscan
+- Retry up to 3 times if rate limited
+- Provide manual verification instructions if needed
+
+### Step 4: View on Polygonscan
+
+After verification, view your contract:
+```
+https://amoy.polygonscan.com/address/YOUR_CONTRACT_ADDRESS
+```
+
+---
+
 ## 🎯 Next Steps
 
 After testing the current implementation:
@@ -338,7 +386,7 @@ After testing the current implementation:
 1. **Task 5:** Build Event Indexer (real-time blockchain monitoring)
 2. **Task 6:** Create Cap-Table Service (ownership analytics)
 3. **Task 7:** Develop CLI Tool (command-line interface)
-4. **Task 8:** Deployment Scripts (testnet deployment)
+4. ✅ **Task 8:** Deployment Scripts (COMPLETED)
 5. **Task 9:** REST API Endpoints
 6. **Task 10:** Comprehensive Testing & Documentation
 

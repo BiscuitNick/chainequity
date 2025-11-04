@@ -9,7 +9,8 @@
     "dev": "nodemon src/server.ts",
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test-issuer": "npm run build && node dist/test-issuer.js"
+    "test-issuer": "npm run build && node dist/test-issuer.js",
+    "test-indexer": "npm run build && node dist/test-indexer.js"
   },
   "keywords": [],
   "author": "",
