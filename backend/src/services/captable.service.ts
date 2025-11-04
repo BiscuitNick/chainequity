@@ -79,9 +79,10 @@ export class CapTableService {
       };
     }
 
-    // Get split multiplier
+    // Get split multiplier (stored in basis points, 10000 = 1.0x)
     const splitMultiplierStr = this.db.getMetadata('split_multiplier');
-    const splitMultiplier = splitMultiplierStr ? parseInt(splitMultiplierStr) : 1;
+    const splitMultiplierBP = splitMultiplierStr ? parseInt(splitMultiplierStr) : 10000;
+    const splitMultiplier = splitMultiplierBP / 10000;
 
     // Calculate total supply (sum of all balances)
     let totalSupply = BigInt(0);

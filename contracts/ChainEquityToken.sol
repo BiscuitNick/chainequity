@@ -18,8 +18,11 @@ contract ChainEquityToken is ERC20, Ownable {
     /// @notice Mapping of addresses that are allowed to send/receive tokens
     mapping(address => bool) public allowlist;
 
-    /// @notice Multiplier for virtual stock splits (starts at 1)
-    uint256 public splitMultiplier = 1;
+    /// @notice Basis points for fixed-point math (10,000 = 1.0x, 5,000 = 0.5x, 20,000 = 2.0x)
+    uint256 public constant BASIS_POINTS = 10000;
+
+    /// @notice Multiplier for virtual stock splits in basis points (starts at 10,000 = 1.0x)
+    uint256 public splitMultiplier = BASIS_POINTS;
 
     /// @notice Custom token symbol (overrides ERC20 default)
     string private _customSymbol;
@@ -174,15 +177,19 @@ contract ChainEquityToken is ERC20, Ownable {
 
     /**
      * @notice Execute a virtual stock split
-     * @param multiplier The multiplier for the split (e.g., 2 for 2:1 split)
+     * @param multiplierBasisPoints The multiplier in basis points (e.g., 20000 for 2:1 split, 5000 for 1:2 reverse split)
+     * @dev Multiplier must be > 0 and != BASIS_POINTS (10000)
+     * @dev Examples: 20000 = 2.0x (2-for-1), 70000 = 7.0x (7-for-1), 1000 = 0.1x (1-for-10 reverse)
      */
-    function executeSplit(uint256 multiplier) external onlyOwner {
-        if (multiplier == 0 || multiplier == 1) revert InvalidMultiplier();
+    function executeSplit(uint256 multiplierBasisPoints) external onlyOwner {
+        if (multiplierBasisPoints == 0 || multiplierBasisPoints == BASIS_POINTS) revert InvalidMultiplier();
 
         uint256 oldMultiplier = splitMultiplier;
-        splitMultiplier = splitMultiplier * multiplier;
 
-        emit StockSplit(multiplier, splitMultiplier);
+        // Multiply using fixed-point math: (splitMultiplier * multiplierBasisPoints) / BASIS_POINTS
+        splitMultiplier = (splitMultiplier * multiplierBasisPoints) / BASIS_POINTS;
+
+        emit StockSplit(multiplierBasisPoints, splitMultiplier);
     }
 
     /**
@@ -194,20 +201,20 @@ contract ChainEquityToken is ERC20, Ownable {
     }
 
     /**
-     * @dev Override balanceOf to account for split multiplier
+     * @dev Override balanceOf to account for split multiplier (using fixed-point math)
      * @param account The address to check balance for
-     * @return uint256 The balance multiplied by the split multiplier
+     * @return uint256 The balance multiplied by the split multiplier (divided by BASIS_POINTS for precision)
      */
     function balanceOf(address account) public view virtual override returns (uint256) {
-        return super.balanceOf(account) * splitMultiplier;
+        return (super.balanceOf(account) * splitMultiplier) / BASIS_POINTS;
     }
 
     /**
-     * @dev Override totalSupply to account for split multiplier
-     * @return uint256 The total supply multiplied by the split multiplier
+     * @dev Override totalSupply to account for split multiplier (using fixed-point math)
+     * @return uint256 The total supply multiplied by the split multiplier (divided by BASIS_POINTS for precision)
      */
     function totalSupply() public view virtual override returns (uint256) {
-        return super.totalSupply() * splitMultiplier;
+        return (super.totalSupply() * splitMultiplier) / BASIS_POINTS;
     }
 
     // ============================================

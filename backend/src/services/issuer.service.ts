@@ -289,22 +289,23 @@ export class IssuerService {
   /**
    * Execute a stock split
    *
-   * @param multiplier - Split multiplier (e.g., 7 for 7-for-1 split)
+   * @param multiplierBasisPoints - Split multiplier in basis points (e.g., 20000 for 2:1 split, 5000 for 1:2 reverse split)
    * @returns Transaction receipt
    */
-  async executeSplit(multiplier: number): Promise<TransactionReceipt> {
-    if (multiplier <= 1) {
-      throw new Error('Multiplier must be greater than 1');
+  async executeSplit(multiplierBasisPoints: number): Promise<TransactionReceipt> {
+    if (multiplierBasisPoints <= 0 || multiplierBasisPoints === 10000) {
+      throw new Error('Multiplier must be > 0 and != 10000 (basis points)');
     }
 
-    console.log(`Executing ${multiplier}-for-1 stock split`);
+    const multiplierDecimal = multiplierBasisPoints / 10000;
+    console.log(`Executing ${multiplierDecimal}x stock split (${multiplierBasisPoints} basis points)`);
 
     // Estimate gas
-    const gasEstimate = await this.contract.executeSplit.estimateGas(multiplier);
+    const gasEstimate = await this.contract.executeSplit.estimateGas(multiplierBasisPoints);
     console.log(`Estimated gas: ${gasEstimate.toString()}`);
 
     const tx = await this.executeWithRetry(async () => {
-      return await this.contract.executeSplit(multiplier, {
+      return await this.contract.executeSplit(multiplierBasisPoints, {
         gasLimit: (gasEstimate * 120n) / 100n,
       });
     });
@@ -319,7 +320,7 @@ export class IssuerService {
   /**
    * Get current split multiplier
    *
-   * @returns Current split multiplier
+   * @returns Current split multiplier in basis points (10000 = 1.0x)
    */
   async getSplitMultiplier(): Promise<number> {
     const multiplier = await this.contract.getSplitMultiplier();

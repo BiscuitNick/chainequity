@@ -268,27 +268,137 @@ const corporate = program.command('corporate').description('Corporate actions');
 
 corporate
   .command('split <multiplier>')
-  .description('Execute stock split')
+  .description('Execute stock split (forward: >1, reverse: <1, e.g., 2, 7, 0.1, 0.5)')
   .option('-n, --network <network>', 'Network to use', 'localhost')
   .action(async (multiplier: string, options) => {
-    const mult = parseInt(multiplier);
+    const mult = parseFloat(multiplier);
 
-    if (mult <= 1) {
-      console.error(chalk.red('Multiplier must be greater than 1'));
+    // Validate input
+    if (isNaN(mult) || mult <= 0) {
+      console.error(chalk.red('Multiplier must be a positive number'));
+      console.log(chalk.gray('  Forward split examples: 2 (2-for-1), 7 (7-for-1)'));
+      console.log(chalk.gray('  Reverse split examples: 0.1 (1-for-10), 0.5 (1-for-2)'));
       process.exit(1);
     }
 
-    const spinner = ora(`Executing ${mult}-for-1 split...`).start();
+    if (mult === 1) {
+      console.error(chalk.red('Multiplier of 1 has no effect'));
+      process.exit(1);
+    }
+
+    // Determine split type and description
+    let splitDescription: string;
+    if (mult > 1) {
+      splitDescription = `${mult}-for-1 forward split`;
+    } else {
+      const ratio = Math.round(1 / mult);
+      splitDescription = `1-for-${ratio} reverse split (${mult}x)`;
+    }
+
+    // Convert to basis points (10,000 = 1.0x)
+    const basisPoints = Math.round(mult * 10000);
+
+    console.log(chalk.gray('  Multiplier:'), mult + 'x');
+    console.log(chalk.gray('  Basis Points:'), basisPoints);
+
+    const spinner = ora(`Executing ${splitDescription}...`).start();
 
     try {
       const issuer = createIssuerService(options.network);
-      const receipt = await issuer.executeSplit(mult);
+      const receipt = await issuer.executeSplit(basisPoints);
 
-      spinner.succeed(chalk.green(`${mult}-for-1 stock split executed!`));
+      spinner.succeed(chalk.green(`${splitDescription} executed!`));
+      console.log(chalk.gray('  All balances multiplied by'), mult + 'x');
       console.log(chalk.gray('  TX Hash:'), receipt.hash);
       console.log(chalk.gray('  Gas Used:'), receipt.gasUsed);
+
+      console.log(chalk.yellow('\n💡 Tip: Run indexer and view updated cap-table:'));
+      console.log(chalk.gray('  cd backend && npm run test-indexer-local && cd ..'));
+      console.log(chalk.gray('  npm run cli captable'));
     } catch (error: any) {
       spinner.fail(chalk.red('Failed to execute split'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
+corporate
+  .command('history')
+  .description('View corporate action history (splits, symbol changes)')
+  .option('-t, --type <type>', 'Filter by type (StockSplit, SymbolChange, NameChange)')
+  .action(async (options) => {
+    const spinner = ora('Fetching corporate action history...').start();
+
+    try {
+      const capTableService = new CapTableService();
+      const db = (capTableService as any).db;
+
+      let actions;
+      if (options.type) {
+        actions = db.getCorporateActionsByType(options.type);
+      } else {
+        actions = db.getAllCorporateActions();
+      }
+
+      spinner.stop();
+
+      if (actions.length === 0) {
+        console.log(chalk.yellow('No corporate actions found'));
+        return;
+      }
+
+      console.log(chalk.bold(`\n${actions.length} Corporate Actions:\n`));
+
+      const table = new Table({
+        head: [
+          chalk.cyan('Date'),
+          chalk.cyan('Type'),
+          chalk.cyan('Details'),
+          chalk.cyan('Block'),
+          chalk.cyan('TX Hash'),
+        ],
+      });
+
+      for (const action of actions) {
+        const date = action.timestamp
+          ? new Date(action.timestamp * 1000).toLocaleString()
+          : 'N/A';
+
+        let details = '';
+        if (action.action_type === 'StockSplit') {
+          // Convert basis points back to multiplier
+          const multiplierBP = parseInt(action.old_value || '0');
+          const multiplier = multiplierBP / 10000;
+          const newMultiplierBP = parseInt(action.new_value || '0');
+          const newMultiplier = newMultiplierBP / 10000;
+
+          if (multiplier > 1) {
+            details = `${multiplier}x forward split`;
+          } else if (multiplier < 1) {
+            const ratio = Math.round(1 / multiplier);
+            details = `1-for-${ratio} reverse (${multiplier}x)`;
+          } else {
+            details = `${multiplier}x split`;
+          }
+          details += `\nNew total: ${newMultiplier}x`;
+        } else if (action.action_type === 'SymbolChange') {
+          details = `${action.old_value} → ${action.new_value}`;
+        } else if (action.action_type === 'NameChange') {
+          details = `${action.old_value} → ${action.new_value}`;
+        }
+
+        table.push([
+          date,
+          action.action_type,
+          details,
+          action.block_number.toString(),
+          action.transaction_hash.substring(0, 10) + '...',
+        ]);
+      }
+
+      console.log(table.toString());
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to fetch corporate action history'));
       console.error(chalk.red(error.message));
       process.exit(1);
     }
@@ -379,6 +489,101 @@ program
       }
     } catch (error: any) {
       spinner.fail(chalk.red('Failed to generate cap-table'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
+// EVENTS COMMANDS
+// ============================================================================
+
+program
+  .command('events')
+  .description('View blockchain events')
+  .option('-t, --type <type>', 'Filter by event type (Transfer, WalletApproved, WalletRevoked, StockSplit, SymbolChanged)')
+  .option('-l, --limit <limit>', 'Number of events to show', '20')
+  .action(async (options) => {
+    const spinner = ora('Fetching events...').start();
+
+    try {
+      const capTableService = new CapTableService();
+      const db = (capTableService as any).db;
+
+      const limit = parseInt(options.limit) || 20;
+      let events;
+
+      if (options.type) {
+        events = db.getEventsByType(options.type, limit);
+      } else {
+        // Get all recent events
+        const stmt = db.db.prepare(`
+          SELECT * FROM events
+          ORDER BY block_number DESC, id DESC
+          LIMIT ?
+        `);
+        events = stmt.all(limit);
+      }
+
+      spinner.stop();
+
+      if (events.length === 0) {
+        console.log(chalk.yellow('No events found'));
+        if (options.type) {
+          console.log(chalk.gray(`  Tip: Try without --type to see all events`));
+        }
+        return;
+      }
+
+      console.log(chalk.bold(`\n${events.length} Events:\n`));
+
+      const table = new Table({
+        head: [
+          chalk.cyan('Block'),
+          chalk.cyan('Type'),
+          chalk.cyan('Details'),
+          chalk.cyan('TX Hash'),
+        ],
+      });
+
+      for (const event of events) {
+        let details = '';
+
+        if (event.event_type === 'Transfer') {
+          const from = event.from_address?.substring(0, 10) || 'N/A';
+          const to = event.to_address?.substring(0, 10) || 'N/A';
+          const amount = event.amount ? ethers.formatEther(event.amount) : '0';
+          details = `${from}... → ${to}...\n${amount} tokens`;
+        } else if (event.event_type === 'WalletApproved') {
+          details = `Approved: ${event.from_address?.substring(0, 10)}...`;
+        } else if (event.event_type === 'WalletRevoked') {
+          details = `Revoked: ${event.from_address?.substring(0, 10)}...`;
+        } else if (event.event_type === 'StockSplit') {
+          const data = JSON.parse(event.data || '{}');
+          const mult = parseInt(data.multiplier || '0') / 10000;
+          details = `Split: ${mult}x`;
+        } else if (event.event_type === 'SymbolChanged') {
+          const data = JSON.parse(event.data || '{}');
+          details = `${data.oldSymbol} → ${data.newSymbol}`;
+        } else {
+          details = event.data || 'N/A';
+        }
+
+        table.push([
+          event.block_number.toString(),
+          event.event_type,
+          details,
+          event.transaction_hash.substring(0, 10) + '...',
+        ]);
+      }
+
+      console.log(table.toString());
+
+      console.log(chalk.gray(`\n💡 Tips:`));
+      console.log(chalk.gray(`  Filter by type: npm run cli events --type Transfer`));
+      console.log(chalk.gray(`  Show more: npm run cli events --limit 50`));
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to fetch events'));
       console.error(chalk.red(error.message));
       process.exit(1);
     }

@@ -354,6 +354,17 @@ export class IndexerService {
 
       await this.saveEvent(processedEvent);
 
+      // Save to corporate_actions table
+      const block = await this.wsProvider?.getBlock(event.blockNumber);
+      this.db.insertCorporateAction({
+        action_type: 'StockSplit',
+        block_number: event.blockNumber,
+        transaction_hash: event.transactionHash,
+        old_value: multiplier.toString(),
+        new_value: newSplitMultiplier.toString(),
+        timestamp: block?.timestamp || Math.floor(Date.now() / 1000),
+      });
+
       // Update split multiplier in metadata
       this.db.setMetadata('split_multiplier', newSplitMultiplier.toString());
 
@@ -385,6 +396,17 @@ export class IndexerService {
       };
 
       await this.saveEvent(processedEvent);
+
+      // Save to corporate_actions table
+      const block = await this.wsProvider?.getBlock(event.blockNumber);
+      this.db.insertCorporateAction({
+        action_type: 'SymbolChange',
+        block_number: event.blockNumber,
+        transaction_hash: event.transactionHash,
+        old_value: oldSymbol,
+        new_value: newSymbol,
+        timestamp: block?.timestamp || Math.floor(Date.now() / 1000),
+      });
 
       // Update symbol in metadata
       this.db.setMetadata('token_symbol', newSymbol);

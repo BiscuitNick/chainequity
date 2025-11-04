@@ -95,11 +95,24 @@ async function main() {
   const currentBlock = await provider.getBlockNumber();
   console.log('   Current block:', currentBlock);
 
-  // Get Transfer events
-  console.log('\n📥 Fetching Transfer events...');
+  // Get all event types
+  console.log('\n📥 Fetching all events...');
+
   const transferFilter = contract.filters.Transfer();
   const transferEvents = await contract.queryFilter(transferFilter, 0, currentBlock);
   console.log(`   Found ${transferEvents.length} Transfer events`);
+
+  const splitFilter = contract.filters.StockSplit();
+  const splitEvents = await contract.queryFilter(splitFilter, 0, currentBlock);
+  console.log(`   Found ${splitEvents.length} StockSplit events`);
+
+  const symbolFilter = contract.filters.SymbolChanged();
+  const symbolEvents = await contract.queryFilter(symbolFilter, 0, currentBlock);
+  console.log(`   Found ${symbolEvents.length} SymbolChanged events`);
+
+  const walletApprovedFilter = contract.filters.WalletApproved();
+  const walletApprovedEvents = await contract.queryFilter(walletApprovedFilter, 0, currentBlock);
+  console.log(`   Found ${walletApprovedEvents.length} WalletApproved events`);
 
   if (transferEvents.length === 0) {
     console.log('\n⚠️  No Transfer events found');
@@ -160,10 +173,129 @@ async function main() {
   }
 
   if (skippedCount > 0) {
-    console.log(`\n   ⏭️  Skipped ${skippedCount} existing events`);
+    console.log(`\n   ⏭️  Skipped ${skippedCount} existing Transfer events`);
   }
 
-  console.log(`\n✅ Processed ${processedCount} Transfer events`);
+  console.log(`\n✅ Processed ${processedCount} new Transfer events`);
+
+  // Process StockSplit events
+  console.log(`\n📈 Processing StockSplit events...`);
+  let splitCount = 0;
+
+  for (const event of splitEvents) {
+    if (!('args' in event)) continue;
+
+    const existingEvent = db.getEventByTxHash(event.transactionHash);
+    if (existingEvent) continue;
+
+    const block = await event.getBlock();
+    const multiplierBP = event.args[0] as bigint;
+    const newMultiplierBP = event.args[1] as bigint;
+
+    console.log(`\n   📝 Block ${event.blockNumber} - Split: ${Number(multiplierBP) / 10000}x`);
+
+    db.insertEvent({
+      block_number: event.blockNumber,
+      transaction_hash: event.transactionHash,
+      event_type: 'StockSplit',
+      from_address: null,
+      to_address: null,
+      amount: null,
+      data: JSON.stringify({ multiplier: multiplierBP.toString(), newSplitMultiplier: newMultiplierBP.toString() }),
+      timestamp: block.timestamp,
+    });
+
+    db.insertCorporateAction({
+      action_type: 'StockSplit',
+      block_number: event.blockNumber,
+      transaction_hash: event.transactionHash,
+      old_value: multiplierBP.toString(),
+      new_value: newMultiplierBP.toString(),
+      timestamp: block.timestamp,
+    });
+
+    splitCount++;
+  }
+
+  console.log(`✅ Processed ${splitCount} new StockSplit events`);
+
+  // Update split multiplier in metadata (get latest from contract)
+  if (splitEvents.length > 0) {
+    const currentMultiplier = await contract.getSplitMultiplier();
+    db.setMetadata('split_multiplier', currentMultiplier.toString());
+    console.log(`   Updated split multiplier: ${Number(currentMultiplier) / 10000}x`);
+  }
+
+  // Process SymbolChanged events
+  console.log(`\n🏷️  Processing SymbolChanged events...`);
+  let symbolCount = 0;
+
+  for (const event of symbolEvents) {
+    if (!('args' in event)) continue;
+
+    const existingEvent = db.getEventByTxHash(event.transactionHash);
+    if (existingEvent) continue;
+
+    const block = await event.getBlock();
+    const oldSymbol = event.args[0] as string;
+    const newSymbol = event.args[1] as string;
+
+    console.log(`\n   📝 Block ${event.blockNumber} - Symbol: ${oldSymbol} → ${newSymbol}`);
+
+    db.insertEvent({
+      block_number: event.blockNumber,
+      transaction_hash: event.transactionHash,
+      event_type: 'SymbolChanged',
+      from_address: null,
+      to_address: null,
+      amount: null,
+      data: JSON.stringify({ oldSymbol, newSymbol }),
+      timestamp: block.timestamp,
+    });
+
+    db.insertCorporateAction({
+      action_type: 'SymbolChange',
+      block_number: event.blockNumber,
+      transaction_hash: event.transactionHash,
+      old_value: oldSymbol,
+      new_value: newSymbol,
+      timestamp: block.timestamp,
+    });
+
+    symbolCount++;
+  }
+
+  console.log(`✅ Processed ${symbolCount} new SymbolChanged events`);
+
+  // Process WalletApproved events
+  console.log(`\n✅ Processing WalletApproved events...`);
+  let approvalCount = 0;
+
+  for (const event of walletApprovedEvents) {
+    if (!('args' in event)) continue;
+
+    const existingEvent = db.getEventByTxHash(event.transactionHash);
+    if (existingEvent) continue;
+
+    const block = await event.getBlock();
+    const wallet = event.args[0] as string;
+
+    db.insertEvent({
+      block_number: event.blockNumber,
+      transaction_hash: event.transactionHash,
+      event_type: 'WalletApproved',
+      from_address: wallet,
+      to_address: null,
+      amount: null,
+      data: JSON.stringify({ wallet }),
+      timestamp: block.timestamp,
+    });
+
+    addressSet.add(wallet.toLowerCase());
+    approvalCount++;
+  }
+
+  console.log(`✅ Processed ${approvalCount} new WalletApproved events`);
 
   // Update balances for all addresses
   console.log(`\n💰 Updating balances for ${addressSet.size} addresses...`);

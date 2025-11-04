@@ -76,4 +76,4 @@ CREATE TABLE IF NOT EXISTS metadata (
 -- Initialize metadata with default values
 INSERT OR IGNORE INTO metadata (key, value) VALUES ('last_synced_block', '0');
 INSERT OR IGNORE INTO metadata (key, value) VALUES ('contract_deployed_block', '0');
-INSERT OR IGNORE INTO metadata (key, value) VALUES ('split_multiplier', '1');
+INSERT OR IGNORE INTO metadata (key, value) VALUES ('split_multiplier', '10000'); -- 10000 basis points = 1.0x
