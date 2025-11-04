@@ -65,10 +65,7 @@ export class IssuerService {
    * @param config - Service configuration
    * @param retryConfig - Optional retry configuration
    */
-  constructor(
-    serviceConfig: IssuerServiceConfig,
-    retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
-  ) {
+  constructor(serviceConfig: IssuerServiceConfig, retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG) {
     // Validate configuration
     if (!serviceConfig.rpcUrl) {
       throw new Error('RPC URL is required');
@@ -298,7 +295,9 @@ export class IssuerService {
     }
 
     const multiplierDecimal = multiplierBasisPoints / 10000;
-    console.log(`Executing ${multiplierDecimal}x stock split (${multiplierBasisPoints} basis points)`);
+    console.log(
+      `Executing ${multiplierDecimal}x stock split (${multiplierBasisPoints} basis points)`
+    );
 
     // Estimate gas
     const gasEstimate = await this.contract.executeSplit.estimateGas(multiplierBasisPoints);
@@ -459,7 +458,7 @@ export class IssuerService {
       'execution reverted',
     ];
 
-    return nonRetryable.some(msg => errorMessage.includes(msg));
+    return nonRetryable.some((msg) => errorMessage.includes(msg));
   }
 
   /**
@@ -478,7 +477,7 @@ export class IssuerService {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

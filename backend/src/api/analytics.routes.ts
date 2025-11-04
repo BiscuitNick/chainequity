@@ -99,9 +99,10 @@ router.get('/supply', async (req: Request, res: Response, next: NextFunction) =>
         splitMultiplier,
         splitMultiplierBasisPoints: splitMultiplierBP,
         holderCount: capTable.holderCount,
-        supplyPerHolder: capTable.holderCount > 0
-          ? (parseFloat(capTable.totalSupplyFormatted) / capTable.holderCount).toFixed(6)
-          : '0',
+        supplyPerHolder:
+          capTable.holderCount > 0
+            ? (parseFloat(capTable.totalSupplyFormatted) / capTable.holderCount).toFixed(6)
+            : '0',
       },
     });
   } catch (error: any) {
@@ -121,10 +122,10 @@ router.get('/distribution', async (req: Request, res: Response, next: NextFuncti
     // Calculate distribution buckets
     const buckets = {
       whales: { min: 10, max: 100, count: 0, totalPercentage: 0 }, // >10%
-      large: { min: 1, max: 10, count: 0, totalPercentage: 0 },    // 1-10%
-      medium: { min: 0.1, max: 1, count: 0, totalPercentage: 0 },  // 0.1-1%
+      large: { min: 1, max: 10, count: 0, totalPercentage: 0 }, // 1-10%
+      medium: { min: 0.1, max: 1, count: 0, totalPercentage: 0 }, // 0.1-1%
       small: { min: 0.01, max: 0.1, count: 0, totalPercentage: 0 }, // 0.01-0.1%
-      tiny: { min: 0, max: 0.01, count: 0, totalPercentage: 0 },   // <0.01%
+      tiny: { min: 0, max: 0.01, count: 0, totalPercentage: 0 }, // <0.01%
     };
 
     for (const entry of capTable.entries) {
@@ -165,16 +166,23 @@ router.get('/distribution', async (req: Request, res: Response, next: NextFuncti
       giniNumerator += (i + 1) * balance;
     }
 
-    const giniCoefficient = sortedEntries.length > 0
-      ? (2 * giniNumerator) / (sortedEntries.length * totalSupplyNum) - (sortedEntries.length + 1) / sortedEntries.length
-      : 0;
+    const giniCoefficient =
+      sortedEntries.length > 0
+        ? (2 * giniNumerator) / (sortedEntries.length * totalSupplyNum) -
+          (sortedEntries.length + 1) / sortedEntries.length
+        : 0;
 
     // Decentralization score (0-100, higher is more decentralized)
-    const decentralizationScore = Math.max(0, Math.min(100,
-      (1 - distribution.concentrationRatio) * 100 *
-      (1 - giniCoefficient) *
-      Math.min(1, distribution.holderCount / 100)
-    ));
+    const decentralizationScore = Math.max(
+      0,
+      Math.min(
+        100,
+        (1 - distribution.concentrationRatio) *
+          100 *
+          (1 - giniCoefficient) *
+          Math.min(1, distribution.holderCount / 100)
+      )
+    );
 
     res.status(200).json({
       success: true,
@@ -299,8 +307,10 @@ router.get('/overview', async (req: Request, res: Response, next: NextFunction) 
 
     // Get corporate actions count
     const corporateActions = db.getAllCorporateActions(100);
-    const splitCount = corporateActions.filter(a => a.action_type === 'StockSplit').length;
-    const symbolChangeCount = corporateActions.filter(a => a.action_type === 'SymbolChange').length;
+    const splitCount = corporateActions.filter((a) => a.action_type === 'StockSplit').length;
+    const symbolChangeCount = corporateActions.filter(
+      (a) => a.action_type === 'SymbolChange'
+    ).length;
 
     res.status(200).json({
       success: true,

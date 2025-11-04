@@ -77,9 +77,7 @@ async function main() {
   const topHolders = capTableService.getTopHolders(3);
   console.log('');
   topHolders.forEach((holder, index) => {
-    console.log(
-      `   ${index + 1}. ${holder.address.substring(0, 42)}`
-    );
+    console.log(`   ${index + 1}. ${holder.address.substring(0, 42)}`);
     console.log(`      Balance: ${holder.balanceFormatted}`);
     console.log(`      Ownership: ${holder.ownershipPercentage.toFixed(4)}%`);
   });

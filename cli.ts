@@ -24,10 +24,7 @@ dotenv.config();
 const program = new Command();
 
 // CLI Configuration
-program
-  .name('chainequity')
-  .description('ChainEquity Token Management CLI')
-  .version('1.0.0');
+program.name('chainequity').description('ChainEquity Token Management CLI').version('1.0.0');
 
 // Helper: Get network configuration
 function getNetworkConfig(network: string = 'localhost') {
@@ -360,9 +357,7 @@ corporate
       });
 
       for (const action of actions) {
-        const date = action.timestamp
-          ? new Date(action.timestamp * 1000).toLocaleString()
-          : 'N/A';
+        const date = action.timestamp ? new Date(action.timestamp * 1000).toLocaleString() : 'N/A';
 
         let details = '';
         if (action.action_type === 'StockSplit') {
@@ -501,7 +496,10 @@ program
 program
   .command('events')
   .description('View blockchain events')
-  .option('-t, --type <type>', 'Filter by event type (Transfer, WalletApproved, WalletRevoked, StockSplit, SymbolChanged)')
+  .option(
+    '-t, --type <type>',
+    'Filter by event type (Transfer, WalletApproved, WalletRevoked, StockSplit, SymbolChanged)'
+  )
   .option('-l, --limit <limit>', 'Number of events to show', '20')
   .action(async (options) => {
     const spinner = ora('Fetching events...').start();
@@ -614,10 +612,7 @@ program
         chalk.gray('Top 10 Concentration:'),
         distribution.topHoldersPercentage.toFixed(2) + '%'
       );
-      console.log(
-        chalk.gray('HHI (Concentration):'),
-        distribution.concentrationRatio.toFixed(4)
-      );
+      console.log(chalk.gray('HHI (Concentration):'), distribution.concentrationRatio.toFixed(4));
 
       console.log(chalk.bold('\nTop 5 Holders:\n'));
 

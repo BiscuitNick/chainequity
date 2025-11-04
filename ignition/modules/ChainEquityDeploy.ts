@@ -3,17 +3,17 @@
  * Run with: npx hardhat ignition deploy ignition/modules/ChainEquityDeploy.ts --network localhost
  */
 
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
 
-const ChainEquityDeployModule = buildModule("ChainEquityDeployModule", (m) => {
+const ChainEquityDeployModule = buildModule('ChainEquityDeployModule', (m) => {
   // Get the deployer account
   const deployer = m.getAccount(0);
 
   // Deploy ChainEquityToken
-  const token = m.contract("ChainEquityToken", [
-    "ChainEquity",        // name
-    "CEQ",                // symbol
-    deployer,             // initialOwner
+  const token = m.contract('ChainEquityToken', [
+    'ChainEquity', // name
+    'CEQ', // symbol
+    deployer, // initialOwner
   ]);
 
   return { token };

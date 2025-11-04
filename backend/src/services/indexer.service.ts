@@ -167,7 +167,9 @@ export class IndexerService {
       return;
     }
 
-    console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    console.log(
+      `🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
+    );
 
     // Wait before reconnecting (exponential backoff)
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
@@ -279,10 +281,7 @@ export class IndexerService {
   /**
    * Handle WalletApproved event
    */
-  private async handleWalletApprovedEvent(
-    wallet: string,
-    event: ethers.EventLog
-  ): Promise<void> {
+  private async handleWalletApprovedEvent(wallet: string, event: ethers.EventLog): Promise<void> {
     try {
       console.log(`\n✅ Wallet Approved: ${wallet}`);
       console.log(`   Block: ${event.blockNumber}`);
@@ -305,10 +304,7 @@ export class IndexerService {
   /**
    * Handle WalletRevoked event
    */
-  private async handleWalletRevokedEvent(
-    wallet: string,
-    event: ethers.EventLog
-  ): Promise<void> {
+  private async handleWalletRevokedEvent(wallet: string, event: ethers.EventLog): Promise<void> {
     try {
       console.log(`\n❌ Wallet Revoked: ${wallet}`);
       console.log(`   Block: ${event.blockNumber}`);
@@ -521,9 +517,7 @@ export class IndexerService {
     try {
       const balance = await this.contract.balanceOf(address);
 
-      const currentBlock = this.wsProvider
-        ? await this.wsProvider.getBlockNumber()
-        : 0;
+      const currentBlock = this.wsProvider ? await this.wsProvider.getBlockNumber() : 0;
 
       this.db.upsertBalance({
         address: address.toLowerCase(),

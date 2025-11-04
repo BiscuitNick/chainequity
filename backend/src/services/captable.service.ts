@@ -98,9 +98,7 @@ export class CapTableService {
     const entries: CapTableEntry[] = balances.map((balance) => {
       const balanceBigInt = BigInt(balance.balance);
       const ownershipPercentage =
-        totalSupply > 0
-          ? (Number(balanceBigInt) / Number(totalSupply)) * 100
-          : 0;
+        totalSupply > 0 ? (Number(balanceBigInt) / Number(totalSupply)) * 100 : 0;
 
       return {
         address: balance.address,
@@ -145,9 +143,7 @@ export class CapTableService {
 
     // Add rows
     for (const entry of capTable.entries) {
-      const lastUpdated = entry.lastUpdated
-        ? new Date(entry.lastUpdated).toISOString()
-        : 'N/A';
+      const lastUpdated = entry.lastUpdated ? new Date(entry.lastUpdated).toISOString() : 'N/A';
 
       csv += `${entry.address},${entry.balanceFormatted},${entry.ownershipPercentage.toFixed(4)},${lastUpdated}\n`;
     }
@@ -185,9 +181,7 @@ export class CapTableService {
           address: entry.address,
           balance: entry.balanceFormatted,
           ownershipPercentage: entry.ownershipPercentage.toFixed(4) + '%',
-          lastUpdated: entry.lastUpdated
-            ? new Date(entry.lastUpdated).toISOString()
-            : null,
+          lastUpdated: entry.lastUpdated ? new Date(entry.lastUpdated).toISOString() : null,
         })),
       },
       null,
@@ -267,19 +261,13 @@ export class CapTableService {
 
     // Calculate average holding
     const totalSupplyBigInt = BigInt(capTable.totalSupply);
-    const averageHolding =
-      totalSupplyBigInt / BigInt(capTable.entries.length);
+    const averageHolding = totalSupplyBigInt / BigInt(capTable.entries.length);
 
     // Calculate top 10 holders percentage
     const top10 = capTable.entries.slice(0, 10);
-    const top10Total = top10.reduce(
-      (sum, entry) => sum + BigInt(entry.balance),
-      BigInt(0)
-    );
+    const top10Total = top10.reduce((sum, entry) => sum + BigInt(entry.balance), BigInt(0));
     const topHoldersPercentage =
-      totalSupplyBigInt > 0
-        ? (Number(top10Total) / Number(totalSupplyBigInt)) * 100
-        : 0;
+      totalSupplyBigInt > 0 ? (Number(top10Total) / Number(totalSupplyBigInt)) * 100 : 0;
 
     // Calculate Herfindahl-Hirschman Index (HHI) for concentration
     let hhi = 0;

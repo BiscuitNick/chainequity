@@ -48,6 +48,20 @@ export class DatabaseService {
   }
 
   /**
+   * Reset the singleton instance (for testing only)
+   */
+  public static resetInstance(): void {
+    if (DatabaseService.instance) {
+      try {
+        DatabaseService.instance.close();
+      } catch (error) {
+        // Ignore errors when closing
+      }
+      DatabaseService.instance = null as any;
+    }
+  }
+
+  /**
    * Initialize database schema
    */
   private initialize(): void {
@@ -225,9 +239,7 @@ export class DatabaseService {
   /**
    * Insert a new corporate action
    */
-  public insertCorporateAction(
-    action: Omit<CorporateAction, 'id' | 'created_at'>
-  ): void {
+  public insertCorporateAction(action: Omit<CorporateAction, 'id' | 'created_at'>): void {
     const stmt = this.db.prepare(`
       INSERT INTO corporate_actions (
         action_type, block_number, transaction_hash,

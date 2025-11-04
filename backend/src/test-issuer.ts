@@ -23,7 +23,9 @@ async function main() {
   if (!contractAddress || !privateKey) {
     console.error('❌ Usage: npm run test-issuer -- <contract-address> <private-key>');
     console.error('\nExample:');
-    console.error('  npm run test-issuer -- 0x5FbDB2315678afecb367f032d93F642f64180aa3 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+    console.error(
+      '  npm run test-issuer -- 0x5FbDB2315678afecb367f032d93F642f64180aa3 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+    );
     process.exit(1);
   }
 
@@ -147,10 +149,13 @@ async function main() {
     console.log('   Symbol:', updatedSymbol);
     console.log('   Split Multiplier:', newMultiplier);
     console.log('   Total Supply:', await issuerService.getTotalSupply(), updatedSymbol);
-    console.log('   Test Address Balance:', await issuerService.getBalance(testAddress), updatedSymbol);
+    console.log(
+      '   Test Address Balance:',
+      await issuerService.getBalance(testAddress),
+      updatedSymbol
+    );
     console.log('   Approved Wallets:', approvedWallets.length);
     console.log('');
-
   } catch (error: any) {
     console.error('\n❌ Test Failed:', error.message);
     console.error(error);

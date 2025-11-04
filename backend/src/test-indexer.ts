@@ -84,7 +84,9 @@ async function main() {
       if (latestEvents.length > 0) {
         console.log(`\n   Latest ${latestEvents.length} Transfer events:`);
         latestEvents.forEach((event) => {
-          console.log(`   - Block ${event.block_number}: ${event.from_address?.substring(0, 10)}... → ${event.to_address?.substring(0, 10)}...`);
+          console.log(
+            `   - Block ${event.block_number}: ${event.from_address?.substring(0, 10)}... → ${event.to_address?.substring(0, 10)}...`
+          );
         });
       }
 

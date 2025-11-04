@@ -31,10 +31,7 @@ export const config = {
 
 // Validate required environment variables
 export function validateConfig(): void {
-  const required = [
-    'ALCHEMY_API_KEY',
-    'TOKEN_CONTRACT_ADDRESS',
-  ];
+  const required = ['ALCHEMY_API_KEY', 'TOKEN_CONTRACT_ADDRESS'];
 
   const missing = required.filter((key) => !process.env[key]);
 
