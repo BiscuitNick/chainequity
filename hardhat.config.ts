@@ -48,8 +48,8 @@ const config: HardhatUserConfig = {
       chainType: "l1",
       url: process.env.ALCHEMY_API_KEY
         ? `https://polygon-amoy.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
-        : "",
-      accounts: process.env.DEPLOYER_PRIVATE_KEY
+        : "https://polygon-amoy.g.alchemy.com/v2/demo",
+      accounts: process.env.DEPLOYER_PRIVATE_KEY && process.env.DEPLOYER_PRIVATE_KEY.startsWith("0x")
         ? [process.env.DEPLOYER_PRIVATE_KEY]
         : [],
       chainId: 80002,
