@@ -545,7 +545,7 @@
           4,
           6
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -553,7 +553,7 @@
             "description": "Create Express routes for wallet approval/revocation and status checking with proper request validation and response formatting",
             "dependencies": [],
             "details": "Implement POST /api/issuer/approve, POST /api/issuer/revoke, GET /api/issuer/status/:address, GET /api/issuer/approved, and POST /api/issuer/mint endpoints. Each endpoint should validate input parameters, call the issuer service methods, handle errors appropriately, and return standardized JSON responses. Include request body validation using express-validator or joi for POST endpoints.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests using supertest to verify each endpoint's functionality, test input validation rules, error responses for invalid data, and successful responses with correct status codes"
           },
           {
@@ -564,7 +564,7 @@
               1
             ],
             "details": "Implement POST /api/corporate/split for executing stock splits, POST /api/corporate/symbol for changing token symbols, and GET /api/corporate/history for retrieving corporate action history. Ensure proper authorization checks, validate split ratios and symbol formats, implement pagination for history endpoint, and return formatted responses with action confirmation details.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test corporate action endpoints with valid and invalid inputs, verify authorization middleware works correctly, test history pagination, and validate response formats match API specifications"
           },
           {
@@ -575,7 +575,7 @@
               1
             ],
             "details": "Create GET /api/captable for current cap-table, GET /api/captable/:blockNumber for historical snapshots, and GET /api/captable/export with format query parameter supporting CSV and JSON exports. Implement efficient database queries, handle large datasets with streaming responses, format CSV output with proper headers, and include ownership percentage calculations in responses.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test cap-table retrieval at different block heights, verify CSV and JSON export formats are correct, test performance with large holder counts, validate ownership percentage calculations"
           },
           {
@@ -586,7 +586,7 @@
               3
             ],
             "details": "Build GET /api/analytics/holders for holder count and concentration metrics, GET /api/analytics/supply for total supply and circulating supply data, and GET /api/analytics/distribution for token distribution analysis including whale detection and decentralization metrics. Cache frequently requested analytics data, implement efficient aggregation queries, and return visualizable data formats.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify analytics calculations match on-chain data, test caching mechanisms, validate distribution metrics accuracy, test endpoint performance under load"
           },
           {
@@ -600,7 +600,7 @@
               4
             ],
             "details": "Implement validation middleware using express-validator for request body/params/query validation, create centralized error handler with proper status codes and error messages, configure CORS for allowed origins, add rate limiting using express-rate-limit to prevent abuse, implement response formatter for consistent API responses, add request logging middleware for debugging, and setup helmet for security headers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test rate limiting triggers correctly, verify CORS headers are set properly, test error handler catches all error types, validate security headers are present, test request validation middleware blocks invalid inputs"
           }
         ]
@@ -808,7 +808,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T02:07:35.583Z",
-      "updated": "2025-11-04T05:05:46.748Z",
+      "updated": "2025-11-04T18:34:26.399Z",
       "description": "Tasks for master context"
     }
   }

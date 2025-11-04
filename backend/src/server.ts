@@ -39,6 +39,15 @@ if (config.nodeEnv !== 'test') {
   app.use(morgan('combined'));
 }
 
+// Import routes
+import issuerRoutes from './api/issuer.routes.js';
+import corporateRoutes from './api/corporate.routes.js';
+import captableRoutes from './api/captable.routes.js';
+import analyticsRoutes from './api/analytics.routes.js';
+
+// Import middleware
+import { apiLimiter, strictLimiter, exportLimiter, readLimiter } from './middleware/rateLimit.js';
+
 // ============================================
 // Routes
 // ============================================
@@ -52,10 +61,14 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes (to be implemented)
-// app.use('/api/issuer', issuerRoutes);
-// app.use('/api/corporate', corporateRoutes);
-// app.use('/api/captable', captableRoutes);
+// Apply rate limiting to API routes
+app.use('/api', apiLimiter);
+
+// API routes
+app.use('/api/issuer', issuerRoutes);
+app.use('/api/corporate', corporateRoutes);
+app.use('/api/captable', captableRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -68,6 +81,7 @@ app.get('/', (req: Request, res: Response) => {
         issuer: '/api/issuer',
         corporate: '/api/corporate',
         captable: '/api/captable',
+        analytics: '/api/analytics',
       },
     },
   });
@@ -77,24 +91,13 @@ app.get('/', (req: Request, res: Response) => {
 // Error Handling
 // ============================================
 
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+
 // 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`,
-  });
-});
+app.use(notFoundHandler);
 
 // Global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: config.nodeEnv === 'development' ? err.message : 'An error occurred',
-    ...(config.nodeEnv === 'development' && { stack: err.stack }),
-  });
-});
+app.use(errorHandler);
 
 // ============================================
 // Server Lifecycle
