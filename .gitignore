@@ -2,10 +2,14 @@
 .env
 
 # Node modules
-/node_modules
+node_modules/
+**/node_modules/
 
 # Compilation output
-/dist
+dist/
+**/dist/
+build/
+**/build/
 
 # pnpm deploy output
 /bundle

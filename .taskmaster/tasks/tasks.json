@@ -145,7 +145,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -153,7 +153,7 @@
             "description": "Set up the backend directory structure with TypeScript, Node.js configuration, and install all required dependencies for the Express server and database integration",
             "dependencies": [],
             "details": "Create backend/ directory with proper folder structure (src/, dist/, tests/). Initialize package.json with npm init. Install core dependencies: express, typescript, @types/node, @types/express, ts-node, nodemon for development. Create tsconfig.json with strict mode, ES2020 target, and proper module resolution. Setup .env file structure for configuration variables. Configure build and dev scripts in package.json.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify TypeScript compilation works, ensure all dependencies are installed correctly, test that npm scripts run without errors"
           },
           {
@@ -164,7 +164,7 @@
               1
             ],
             "details": "Install better-sqlite3 and @types/better-sqlite3. Create schema.sql file with three tables: events table with columns for block_number (INTEGER), transaction_hash (TEXT PRIMARY KEY), event_type (TEXT), from_address (TEXT), to_address (TEXT), amount (TEXT), data (JSON), timestamp (INTEGER). Create balances table with address (TEXT PRIMARY KEY), balance (TEXT), last_updated_block (INTEGER), last_updated_timestamp (INTEGER). Create corporate_actions table with action_type (TEXT), block_number (INTEGER), transaction_hash (TEXT), old_value (TEXT), new_value (TEXT), timestamp (INTEGER). Add appropriate indexes for query performance.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test schema creation with sample data insertion, verify all constraints work correctly, test index performance with query execution plans"
           },
           {
@@ -175,7 +175,7 @@
               2
             ],
             "details": "Create database.ts file with Database class implementing singleton pattern for connection management. Implement prepared statements for all CRUD operations: insertEvent(), updateBalance(), getBalance(), getEvents(), insertCorporateAction(). Add transaction support with begin(), commit(), rollback() methods. Implement database initialization method that runs schema.sql on first startup. Add connection pooling and error handling with automatic retry logic. Create TypeScript interfaces for all database models (Event, Balance, CorporateAction).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for all database methods, test transaction rollback scenarios, verify prepared statement performance, test connection recovery after database errors"
           },
           {
@@ -186,7 +186,7 @@
               1
             ],
             "details": "Create server.ts with Express application setup. Configure middleware stack: cors for cross-origin requests, helmet for security headers, express.json() for JSON parsing, morgan for request logging. Implement global error handler middleware with proper error response formatting. Setup route structure with separate route files for /api/issuer, /api/corporate, /api/captable endpoints. Configure server to listen on configurable port from environment variables. Add health check endpoint at /health. Implement graceful shutdown handling for SIGTERM/SIGINT signals.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test server startup and shutdown, verify all middleware is working correctly, test error handling with various error scenarios, validate CORS configuration"
           },
           {
@@ -197,7 +197,7 @@
               1
             ],
             "details": "Install alchemy-sdk and ethers dependencies. Create alchemy.config.ts with AlchemySettings configuration for Polygon Amoy network. Configure WebSocket provider for real-time event subscriptions. Set up authentication with Alchemy API key from environment variables. Implement connection management with automatic reconnection logic for WebSocket disconnections. Create helper functions for converting between different unit formats (wei, ether). Setup contract ABI interfaces for the token contract. Implement retry logic with exponential backoff for failed RPC calls.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test connection to Alchemy Polygon Amoy network, verify WebSocket subscription works, test reconnection after network interruption, validate contract interaction methods"
           }
         ]
@@ -213,7 +213,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -221,7 +221,7 @@
             "description": "Set up the IssuerService class structure with constructor, Alchemy SDK client initialization, and contract instance binding with proper signer configuration",
             "dependencies": [],
             "details": "Create issuer.service.ts file with IssuerService class. Initialize Alchemy SDK with network configuration for Polygon Amoy. Set up contract instance using ABI and deployed address from config. Configure wallet/signer for transaction signing. Implement constructor to accept configuration parameters and establish connection to blockchain.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests to verify Alchemy SDK initialization, mock contract instance creation, test configuration parameter handling"
           },
           {
@@ -232,7 +232,7 @@
               1
             ],
             "details": "Implement approveWallet(address) method to submit approval transaction to smart contract. Create revokeWallet(address) for removing addresses from allowlist. Build isWalletApproved(address) to query current approval status. Implement getApprovedWallets() to retrieve all approved addresses from contract events or state. Add proper type checking and address validation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests for wallet approval/revocation flow, mock contract calls, verify address validation and error handling"
           },
           {
@@ -243,7 +243,7 @@
               1
             ],
             "details": "Implement mintTokens(to, amount) method with proper decimal conversion based on token decimals. Add gas estimation logic using estimateGas() before transaction submission. Implement dynamic gas price fetching for optimal transaction costs. Handle unit conversion between user input and blockchain representation. Add validation for minting permissions and amount limits.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test minting with various amounts, verify gas estimation accuracy, test decimal conversion edge cases, validate permission checks"
           },
           {
@@ -254,7 +254,7 @@
               1
             ],
             "details": "Create executeSplit(multiplier) method to trigger stock split transactions with proper validation of multiplier values. Implement updateSymbol(newSymbol) for changing token symbol on-chain. Add validation for symbol format and length restrictions. Include event emission tracking for corporate actions. Implement proper authorization checks to ensure only authorized addresses can execute these actions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test split execution with various multipliers, verify symbol update constraints, test authorization failures, validate event emissions"
           },
           {
@@ -267,7 +267,7 @@
               4
             ],
             "details": "Implement transaction submission wrapper with configurable confirmation blocks. Add retry logic with exponential backoff for failed transactions. Create formatted transaction receipt return objects with relevant data. Implement comprehensive error handling for common Web3 errors like insufficient gas, network issues, and reverted transactions. Add transaction status monitoring and timeout handling. Include logging for transaction lifecycle events.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test retry logic with simulated failures, verify timeout handling, test various error scenarios, validate transaction receipt formatting"
           }
         ]
@@ -808,7 +808,7 @@
     ],
     "metadata": {
       "created": "2025-11-04T02:07:35.583Z",
-      "updated": "2025-11-04T02:46:24.175Z",
+      "updated": "2025-11-04T04:10:05.705Z",
       "description": "Tasks for master context"
     }
   }
