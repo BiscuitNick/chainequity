@@ -2,23 +2,24 @@
  * Integration tests for Corporate Actions API
  */
 
-import { createTestDatabase, cleanupTestDatabase, seedTestData } from '../testUtils.js';
-import { DatabaseService as _DatabaseService } from '../../db/database.js';
+import {
+  createTestDatabase,
+  cleanupTestDatabase,
+  seedTestData,
+  createTestApp,
+} from '../testUtils.js';
+import request from 'supertest';
 
-// Create test database BEFORE importing app
+// Create test database
 const testDb = createTestDatabase();
 const db = testDb.db;
 const dbPath = testDb.dbPath;
 
-// Set environment to use test database BEFORE importing app
-process.env.DATABASE_PATH = dbPath;
-
 // Seed test data
 seedTestData(db);
 
-// NOW import the app after database is set up
-import request from 'supertest';
-import { app } from '../../server.js';
+// Create test app with test database
+const app = createTestApp(db);
 
 describe('Corporate Actions API Integration Tests', () => {
   afterAll(() => {

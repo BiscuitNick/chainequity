@@ -52,8 +52,8 @@ export interface OwnershipDistribution {
 export class CapTableService {
   private db: ReturnType<typeof getDatabase>;
 
-  constructor() {
-    this.db = getDatabase();
+  constructor(db?: ReturnType<typeof getDatabase>) {
+    this.db = db || getDatabase();
   }
 
   /**
@@ -394,6 +394,6 @@ export class CapTableService {
 /**
  * Create CapTableService instance
  */
-export function createCapTableService(): CapTableService {
-  return new CapTableService();
+export function createCapTableService(db?: ReturnType<typeof getDatabase>): CapTableService {
+  return new CapTableService(db);
 }

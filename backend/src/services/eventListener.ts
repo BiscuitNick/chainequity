@@ -12,9 +12,9 @@ export class EventListenerService {
   private db: ReturnType<typeof getDatabase>;
   private isListening: boolean = false;
 
-  constructor() {
+  constructor(db?: ReturnType<typeof getDatabase>) {
     this.alchemy = getAlchemy();
-    this.db = getDatabase();
+    this.db = db || getDatabase();
   }
 
   /**

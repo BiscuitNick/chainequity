@@ -3,6 +3,15 @@
  */
 
 import { DatabaseService } from '../db/database.js';
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { createCaptableRouter } from '../api/captable.routes.js';
+import { createAnalyticsRouter } from '../api/analytics.routes.js';
+import { createCorporateRouter } from '../api/corporate.routes.js';
+import { createIssuerRouter } from '../api/issuer.routes.js';
+import { apiLimiter } from '../middleware/rateLimit.js';
+import { errorHandler } from '../middleware/errorHandler.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -120,4 +129,48 @@ export async function waitFor(
     }
     await new Promise((resolve) => setTimeout(resolve, interval));
   }
+}
+
+/**
+ * Create a test Express app with test database
+ */
+export function createTestApp(db: DatabaseService) {
+  const app = express();
+
+  // Middleware
+  app.use(helmet());
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Health check
+  app.get('/health', (req: Request, res: Response) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
+
+  // Apply rate limiting
+  app.use('/api', apiLimiter);
+
+  // API routes with test database
+  app.use('/api/issuer', createIssuerRouter());
+  app.use('/api/corporate', createCorporateRouter(db));
+  app.use('/api/captable', createCaptableRouter(db));
+  app.use('/api/analytics', createAnalyticsRouter(db));
+
+  // Root endpoint
+  app.get('/', (req: Request, res: Response) => {
+    res.json({
+      name: 'ChainEquity Backend API (Test)',
+      version: '1.0.0',
+    });
+  });
+
+  // Error handler
+  app.use(errorHandler);
+
+  return app;
 }

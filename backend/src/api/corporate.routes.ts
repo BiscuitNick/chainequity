@@ -8,321 +8,385 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { createIssuerService } from '../services/issuer.service.js';
 import { getDatabase } from '../db/database.js';
 
-const router = Router();
-
-// Initialize services
-let issuerService: ReturnType<typeof createIssuerService>;
-const db = getDatabase();
-
-try {
-  issuerService = createIssuerService();
-} catch (error) {
-  console.error('Failed to initialize IssuerService:', error);
-}
-
 /**
- * Middleware to check if issuer service is available
+ * Create corporate router with optional database instance
  */
-function requireIssuerService(req: Request, res: Response, next: NextFunction): void {
-  if (!issuerService) {
-    res.status(503).json({
-      error: 'Service Unavailable',
-      message: 'Issuer service is not initialized',
-    });
-    return;
+export function createCorporateRouter(db?: ReturnType<typeof getDatabase>) {
+  const router = Router();
+  const database = db || getDatabase();
+
+  // Initialize services
+  let issuerService: ReturnType<typeof createIssuerService>;
+
+  try {
+    issuerService = createIssuerService();
+  } catch (error) {
+    console.error('Failed to initialize IssuerService:', error);
   }
-  next();
-}
 
-/**
- * POST /api/corporate/split
- * Execute a stock split
- */
-router.post(
-  '/split',
-  requireIssuerService,
-  async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Middleware to check if issuer service is available
+   */
+  function requireIssuerService(req: Request, res: Response, next: NextFunction): void {
+    if (!issuerService) {
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: 'Issuer service is not initialized',
+      });
+      return;
+    }
+    next();
+  }
+
+  /**
+   * POST /api/corporate/split
+   * Execute a stock split
+   */
+  router.post(
+    '/split',
+    requireIssuerService,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { multiplierBasisPoints, multiplier } = req.body;
+
+        // Allow either multiplierBasisPoints or multiplier
+        let basisPoints: number;
+
+        if (multiplierBasisPoints !== undefined) {
+          basisPoints = parseInt(multiplierBasisPoints);
+
+          if (isNaN(basisPoints) || basisPoints <= 0 || basisPoints === 10000) {
+            res.status(400).json({
+              error: 'Bad Request',
+              message:
+                'multiplierBasisPoints must be a positive number and not equal to 10000 (basis points)',
+            });
+            return;
+          }
+        } else if (multiplier !== undefined) {
+          // Convert decimal multiplier to basis points (e.g., 2.0 -> 20000, 0.5 -> 5000)
+          const multiplierNum = parseFloat(multiplier);
+
+          if (isNaN(multiplierNum) || multiplierNum <= 0 || multiplierNum === 1.0) {
+            res.status(400).json({
+              error: 'Bad Request',
+              message: 'multiplier must be a positive number and not equal to 1.0',
+            });
+            return;
+          }
+
+          basisPoints = Math.round(multiplierNum * 10000);
+        } else {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Either multiplierBasisPoints or multiplier is required',
+          });
+          return;
+        }
+
+        // Get current split multiplier
+        const currentMultiplier = await issuerService.getSplitMultiplier();
+
+        // Execute split
+        const receipt = await issuerService.executeSplit(basisPoints);
+
+        // Get new multiplier
+        const newMultiplier = await issuerService.getSplitMultiplier();
+
+        res.status(200).json({
+          success: true,
+          message: 'Stock split executed successfully',
+          data: {
+            multiplierBasisPoints: basisPoints,
+            multiplierDecimal: basisPoints / 10000,
+            previousMultiplierBasisPoints: currentMultiplier,
+            previousMultiplierDecimal: currentMultiplier / 10000,
+            newMultiplierBasisPoints: newMultiplier,
+            newMultiplierDecimal: newMultiplier / 10000,
+            transactionHash: receipt.hash,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed,
+          },
+        });
+      } catch (error: any) {
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * POST /api/corporate/symbol
+   * Update token symbol
+   */
+  router.post(
+    '/symbol',
+    requireIssuerService,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { newSymbol } = req.body;
+
+        if (!newSymbol || typeof newSymbol !== 'string') {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'newSymbol is required and must be a string',
+          });
+        }
+
+        // Validate symbol format
+        if (!/^[A-Z]{3,5}$/.test(newSymbol)) {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Symbol must be 3-5 uppercase letters',
+          });
+        }
+
+        // Get current token info
+        const currentInfo = await issuerService.getTokenInfo();
+
+        // Update symbol
+        const receipt = await issuerService.updateSymbol(newSymbol);
+
+        res.status(200).json({
+          success: true,
+          message: 'Token symbol updated successfully',
+          data: {
+            oldSymbol: currentInfo.symbol,
+            newSymbol,
+            transactionHash: receipt.hash,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed,
+          },
+        });
+      } catch (error: any) {
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * POST /api/corporate/name
+   * Update token name
+   */
+  router.post(
+    '/name',
+    requireIssuerService,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { newName } = req.body;
+
+        if (!newName || typeof newName !== 'string') {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'newName is required and must be a string',
+          });
+        }
+
+        if (newName.trim().length === 0) {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Name cannot be empty',
+          });
+        }
+
+        // Get current token info
+        const currentInfo = await issuerService.getTokenInfo();
+
+        // Update name
+        const receipt = await issuerService.updateName(newName);
+
+        res.status(200).json({
+          success: true,
+          message: 'Token name updated successfully',
+          data: {
+            oldName: currentInfo.name,
+            newName,
+            transactionHash: receipt.hash,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed,
+          },
+        });
+      } catch (error: any) {
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * GET /api/corporate/history
+   * Get corporate action history with pagination
+   */
+  router.get('/history', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { multiplierBasisPoints, multiplier } = req.body;
+      const { limit = '50', actionType } = req.query;
 
-      // Allow either multiplierBasisPoints or multiplier
-      let basisPoints: number;
+      // Parse limit with graceful fallback to default
+      let limitNum = parseInt(limit as string);
+      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 500) {
+        limitNum = 50; // Use default limit for invalid values
+      }
 
-      if (multiplierBasisPoints !== undefined) {
-        basisPoints = parseInt(multiplierBasisPoints);
-
-        if (isNaN(basisPoints) || basisPoints <= 0 || basisPoints === 10000) {
-          res.status(400).json({
-            error: 'Bad Request',
-            message:
-              'multiplierBasisPoints must be a positive number and not equal to 10000 (basis points)',
-          });
-          return;
-        }
-      } else if (multiplier !== undefined) {
-        // Convert decimal multiplier to basis points (e.g., 2.0 -> 20000, 0.5 -> 5000)
-        const multiplierNum = parseFloat(multiplier);
-
-        if (isNaN(multiplierNum) || multiplierNum <= 0 || multiplierNum === 1.0) {
-          res.status(400).json({
-            error: 'Bad Request',
-            message: 'multiplier must be a positive number and not equal to 1.0',
-          });
-          return;
-        }
-
-        basisPoints = Math.round(multiplierNum * 10000);
+      // Get corporate actions
+      let actions;
+      if (actionType && typeof actionType === 'string') {
+        actions = database.getCorporateActionsByType(actionType as any, limitNum);
       } else {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'Either multiplierBasisPoints or multiplier is required',
-        });
-        return;
+        actions = database.getAllCorporateActions(limitNum);
       }
 
-      // Get current split multiplier
-      const currentMultiplier = await issuerService.getSplitMultiplier();
+      // Format the response
+      const formattedActions = actions.map((action) => {
+        const baseAction = {
+          id: action.id,
+          action_type: action.action_type,
+          block_number: action.block_number,
+          transaction_hash: action.transaction_hash,
+          old_value: action.old_value,
+          new_value: action.new_value,
+          timestamp: action.timestamp,
+          date: new Date(action.timestamp * 1000).toISOString(),
+        };
 
-      // Execute split
-      const receipt = await issuerService.executeSplit(basisPoints);
+        // Add type-specific data
+        if (action.action_type === 'StockSplit') {
+          return {
+            ...baseAction,
+            multiplierBasisPoints: parseInt(action.old_value || '10000'),
+            multiplierDecimal: parseInt(action.old_value || '10000') / 10000,
+            newSplitMultiplierBasisPoints: parseInt(action.new_value || '10000'),
+            newSplitMultiplierDecimal: parseInt(action.new_value || '10000') / 10000,
+          };
+        } else if (action.action_type === 'SymbolChange') {
+          return {
+            ...baseAction,
+            oldSymbol: action.old_value,
+            newSymbol: action.new_value,
+          };
+        } else if (action.action_type === 'NameChange') {
+          return {
+            ...baseAction,
+            oldName: action.old_value,
+            newName: action.new_value,
+          };
+        }
 
-      // Get new multiplier
-      const newMultiplier = await issuerService.getSplitMultiplier();
-
-      res.status(200).json({
-        success: true,
-        message: 'Stock split executed successfully',
-        data: {
-          multiplierBasisPoints: basisPoints,
-          multiplierDecimal: basisPoints / 10000,
-          previousMultiplierBasisPoints: currentMultiplier,
-          previousMultiplierDecimal: currentMultiplier / 10000,
-          newMultiplierBasisPoints: newMultiplier,
-          newMultiplierDecimal: newMultiplier / 10000,
-          transactionHash: receipt.hash,
-          blockNumber: receipt.blockNumber,
-          gasUsed: receipt.gasUsed,
-        },
+        return baseAction;
       });
+
+      res.status(200).json(formattedActions);
     } catch (error: any) {
       next(error);
     }
-  }
-);
+  });
 
-/**
- * POST /api/corporate/symbol
- * Update token symbol
- */
-router.post(
-  '/symbol',
-  requireIssuerService,
-  async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * GET /api/corporate/splits
+   * Get stock split history
+   */
+  router.get('/splits', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { newSymbol } = req.body;
+      const { limit = '50' } = req.query;
 
-      if (!newSymbol || typeof newSymbol !== 'string') {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'newSymbol is required and must be a string',
-        });
+      // Parse limit with graceful fallback to default
+      let limitNum = parseInt(limit as string);
+      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 500) {
+        limitNum = 50; // Use default limit for invalid values
       }
 
-      // Validate symbol format
-      if (!/^[A-Z]{3,5}$/.test(newSymbol)) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'Symbol must be 3-5 uppercase letters',
-        });
-      }
+      const splits = database.getCorporateActionsByType('StockSplit', limitNum);
 
-      // Get current token info
-      const currentInfo = await issuerService.getTokenInfo();
+      const formattedSplits = splits.map((split) => ({
+        id: split.id,
+        action_type: 'StockSplit',
+        blockNumber: split.block_number,
+        transactionHash: split.transaction_hash,
+        old_value: split.old_value,
+        new_value: split.new_value,
+        multiplierBasisPoints: parseInt(split.old_value || '10000'),
+        multiplierDecimal: parseInt(split.old_value || '10000') / 10000,
+        newSplitMultiplierBasisPoints: parseInt(split.new_value || '10000'),
+        newSplitMultiplierDecimal: parseInt(split.new_value || '10000') / 10000,
+        timestamp: split.timestamp,
+        date: new Date(split.timestamp * 1000).toISOString(),
+      }));
 
-      // Update symbol
-      const receipt = await issuerService.updateSymbol(newSymbol);
-
-      res.status(200).json({
-        success: true,
-        message: 'Token symbol updated successfully',
-        data: {
-          oldSymbol: currentInfo.symbol,
-          newSymbol,
-          transactionHash: receipt.hash,
-          blockNumber: receipt.blockNumber,
-          gasUsed: receipt.gasUsed,
-        },
-      });
+      res.status(200).json(formattedSplits);
     } catch (error: any) {
       next(error);
     }
-  }
-);
+  });
 
-/**
- * POST /api/corporate/name
- * Update token name
- */
-router.post(
-  '/name',
-  requireIssuerService,
-  async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * GET /api/corporate/symbols
+   * Get symbol change history
+   */
+  router.get('/symbols', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { newName } = req.body;
+      const { limit = '50' } = req.query;
 
-      if (!newName || typeof newName !== 'string') {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'newName is required and must be a string',
-        });
+      // Parse limit with graceful fallback to default
+      let limitNum = parseInt(limit as string);
+      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 500) {
+        limitNum = 50; // Use default limit for invalid values
       }
 
-      if (newName.trim().length === 0) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'Name cannot be empty',
-        });
-      }
+      const symbols = database.getCorporateActionsByType('SymbolChange', limitNum);
 
-      // Get current token info
-      const currentInfo = await issuerService.getTokenInfo();
+      const formattedSymbols = symbols.map((symbol) => ({
+        id: symbol.id,
+        action_type: 'SymbolChange',
+        blockNumber: symbol.block_number,
+        transactionHash: symbol.transaction_hash,
+        oldSymbol: symbol.old_value,
+        newSymbol: symbol.new_value,
+        old_value: symbol.old_value,
+        new_value: symbol.new_value,
+        timestamp: symbol.timestamp,
+        date: new Date(symbol.timestamp * 1000).toISOString(),
+      }));
 
-      // Update name
-      const receipt = await issuerService.updateName(newName);
-
-      res.status(200).json({
-        success: true,
-        message: 'Token name updated successfully',
-        data: {
-          oldName: currentInfo.name,
-          newName,
-          transactionHash: receipt.hash,
-          blockNumber: receipt.blockNumber,
-          gasUsed: receipt.gasUsed,
-        },
-      });
+      res.status(200).json(formattedSymbols);
     } catch (error: any) {
       next(error);
     }
-  }
-);
+  });
 
-/**
- * GET /api/corporate/history
- * Get corporate action history with pagination
- */
-router.get('/history', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { limit = '50', actionType } = req.query;
+  /**
+   * GET /api/corporate/names
+   * Get name change history
+   */
+  router.get('/names', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { limit = '50' } = req.query;
 
-    const limitNum = parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum <= 0 || limitNum > 500) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'limit must be a positive number between 1 and 500',
-      });
-    }
-
-    // Get corporate actions
-    let actions;
-    if (actionType && typeof actionType === 'string') {
-      actions = db.getCorporateActionsByType(actionType as any, limitNum);
-    } else {
-      actions = db.getAllCorporateActions(limitNum);
-    }
-
-    // Format the response
-    const formattedActions = actions.map((action) => {
-      const baseAction = {
-        id: action.id,
-        actionType: action.action_type,
-        blockNumber: action.block_number,
-        transactionHash: action.transaction_hash,
-        timestamp: action.timestamp,
-        date: new Date(action.timestamp * 1000).toISOString(),
-      };
-
-      // Add type-specific data
-      if (action.action_type === 'StockSplit') {
-        return {
-          ...baseAction,
-          multiplierBasisPoints: parseInt(action.old_value || '10000'),
-          multiplierDecimal: parseInt(action.old_value || '10000') / 10000,
-          newSplitMultiplierBasisPoints: parseInt(action.new_value || '10000'),
-          newSplitMultiplierDecimal: parseInt(action.new_value || '10000') / 10000,
-        };
-      } else if (action.action_type === 'SymbolChange') {
-        return {
-          ...baseAction,
-          oldSymbol: action.old_value,
-          newSymbol: action.new_value,
-        };
-      } else if (action.action_type === 'NameChange') {
-        return {
-          ...baseAction,
-          oldName: action.old_value,
-          newName: action.new_value,
-        };
+      // Parse limit with graceful fallback to default
+      let limitNum = parseInt(limit as string);
+      if (isNaN(limitNum) || limitNum <= 0 || limitNum > 500) {
+        limitNum = 50; // Use default limit for invalid values
       }
 
-      return baseAction;
-    });
+      const names = database.getCorporateActionsByType('NameChange', limitNum);
 
-    res.status(200).json({
-      success: true,
-      data: {
-        actions: formattedActions,
-        count: formattedActions.length,
-        limit: limitNum,
-        ...(actionType && { actionType }),
-      },
-    });
-  } catch (error: any) {
-    next(error);
-  }
-});
+      const formattedNames = names.map((name) => ({
+        id: name.id,
+        action_type: 'NameChange',
+        blockNumber: name.block_number,
+        transactionHash: name.transaction_hash,
+        oldName: name.old_value,
+        newName: name.new_value,
+        old_value: name.old_value,
+        new_value: name.new_value,
+        timestamp: name.timestamp,
+        date: new Date(name.timestamp * 1000).toISOString(),
+      }));
 
-/**
- * GET /api/corporate/splits
- * Get stock split history
- */
-router.get('/splits', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { limit = '50' } = req.query;
-
-    const limitNum = parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum <= 0 || limitNum > 500) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'limit must be a positive number between 1 and 500',
-      });
+      res.status(200).json(formattedNames);
+    } catch (error: any) {
+      next(error);
     }
+  });
 
-    const splits = db.getCorporateActionsByType('StockSplit', limitNum);
+  return router;
+}
 
-    const formattedSplits = splits.map((split) => ({
-      id: split.id,
-      blockNumber: split.block_number,
-      transactionHash: split.transaction_hash,
-      multiplierBasisPoints: parseInt(split.old_value || '10000'),
-      multiplierDecimal: parseInt(split.old_value || '10000') / 10000,
-      newSplitMultiplierBasisPoints: parseInt(split.new_value || '10000'),
-      newSplitMultiplierDecimal: parseInt(split.new_value || '10000') / 10000,
-      timestamp: split.timestamp,
-      date: new Date(split.timestamp * 1000).toISOString(),
-    }));
-
-    res.status(200).json({
-      success: true,
-      data: {
-        splits: formattedSplits,
-        count: formattedSplits.length,
-        limit: limitNum,
-      },
-    });
-  } catch (error: any) {
-    next(error);
-  }
-});
-
-export default router;
+// Export default router for backwards compatibility
+export default createCorporateRouter();
