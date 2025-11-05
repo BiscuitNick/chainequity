@@ -53,9 +53,9 @@ export function useTokenInfo() {
     functionName: 'owner',
   });
 
-  // Format total supply
+  // Format total supply with max 4 decimal places
   const formattedTotalSupply = totalSupply && decimals
-    ? formatUnits(totalSupply, decimals)
+    ? parseFloat(formatUnits(totalSupply, decimals)).toFixed(4).replace(/\.?0+$/, '')
     : '0';
 
   return {

@@ -15,6 +15,7 @@ const navItems = [
   { href: '/mint', label: 'Mint Tokens', icon: '🪙' },
   { href: '/captable', label: 'Cap Table', icon: '📈' },
   { href: '/corporate', label: 'Corporate Actions', icon: '⚙️' },
+  { href: '/events', label: 'Events', icon: '⛓️' },
 ];
 
 export function Navigation() {

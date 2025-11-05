@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export default function MintPage() {
   const { isConnected } = useAccount();
   const { address: contractAddress, abi } = useContract();
-  const { decimals, symbol, owner } = useTokenInfo();
+  const { decimals, symbol, owner, splitMultiplier } = useTokenInfo();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
@@ -45,13 +45,17 @@ export default function MintPage() {
     }
 
     try {
-      const amountWei = parseUnits(amount, decimals);
+      // Convert displayed amount to actual amount accounting for split multiplier
+      // actualAmount = displayedAmount * BASIS_POINTS / splitMultiplier
+      const BASIS_POINTS = 10000;
+      const displayedAmountWei = parseUnits(amount, decimals);
+      const actualAmountWei = (displayedAmountWei * BigInt(BASIS_POINTS)) / splitMultiplier;
 
       writeContract({
         address: contractAddress,
         abi,
         functionName: 'mint',
-        args: [recipient as Address, amountWei],
+        args: [recipient as Address, actualAmountWei],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mint tokens');
@@ -161,7 +165,7 @@ export default function MintPage() {
               <ul className="text-sm space-y-1">
                 <li>• Only the contract owner ({owner ? `${owner.slice(0, 6)}...${owner.slice(-4)}` : '...'}) can mint tokens</li>
                 <li>• Recipient must be an approved wallet</li>
-                <li>• Tokens can only be minted by the contract owner</li>
+                <li>• Amount entered is the displayed balance that will be added (split multiplier is automatically accounted for)</li>
                 <li>• All minting activity is recorded on-chain</li>
               </ul>
             </AlertDescription>

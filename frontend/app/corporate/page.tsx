@@ -7,7 +7,7 @@
  */
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useContract } from '@/hooks/useContract';
 import { useTokenInfo } from '@/hooks/useTokenInfo';
@@ -16,6 +16,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SimplePagination } from '@/components/ui/pagination';
+
+interface CorporateAction {
+  id: number;
+  action_type: 'StockSplit' | 'SymbolChange' | 'NameChange';
+  block_number: number;
+  transaction_hash: string;
+  old_value: string | null;
+  new_value: string | null;
+  timestamp: number;
+}
 
 export default function CorporatePage() {
   const { isConnected } = useAccount();
@@ -26,9 +37,73 @@ export default function CorporatePage() {
   const [error, setError] = useState('');
   const [activeAction, setActiveAction] = useState<'split' | 'symbol' | null>(null);
 
+  // Corporate action history state
+  const [history, setHistory] = useState<CorporateAction[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLimit] = useState(10);
+
   // Write contract hooks
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  // Fetch corporate action history
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const fetchHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        const response = await fetch(`http://localhost:3000/api/corporate/history?limit=${historyLimit}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch corporate action history');
+        }
+        const data = await response.json();
+        setHistory(data.actions || []);
+      } catch (err) {
+        console.error('Failed to fetch history:', err);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [isConnected, historyLimit, isSuccess]); // Refetch when action succeeds
+
+  // Format timestamp
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  // Format action type
+  const formatActionType = (actionType: string) => {
+    switch (actionType) {
+      case 'StockSplit':
+        return 'Stock Split';
+      case 'SymbolChange':
+        return 'Symbol Change';
+      case 'NameChange':
+        return 'Name Change';
+      default:
+        return actionType;
+    }
+  };
+
+  // Format action details
+  const formatActionDetails = (action: CorporateAction) => {
+    switch (action.action_type) {
+      case 'StockSplit':
+        const oldMultiplier = action.old_value ? (parseFloat(action.old_value) / 10000).toFixed(1) : '1.0';
+        const newMultiplier = action.new_value ? (parseFloat(action.new_value) / 10000).toFixed(1) : '1.0';
+        return `${oldMultiplier}x → ${newMultiplier}x`;
+      case 'SymbolChange':
+        return `${action.old_value || 'N/A'} → ${action.new_value || 'N/A'}`;
+      case 'NameChange':
+        return `${action.old_value || 'N/A'} → ${action.new_value || 'N/A'}`;
+      default:
+        return 'N/A';
+    }
+  };
 
   // Handle stock split
   const handleSplit = async () => {
@@ -228,6 +303,64 @@ export default function CorporatePage() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Corporate Action History */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Corporate Action History</CardTitle>
+            <CardDescription>Recent corporate actions executed on this token</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {historyLoading ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">Loading history...</p>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">No corporate actions have been executed yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Action Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Details
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Block
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {history.map((action) => (
+                      <tr key={action.id} className="hover:bg-muted/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {formatTimestamp(action.timestamp)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {formatActionType(action.action_type)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
+                          {formatActionDetails(action)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                          {action.block_number}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Info Box */}
         <Alert className="mt-6">

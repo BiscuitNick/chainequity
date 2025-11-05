@@ -48,9 +48,9 @@ export function useTokenBalance({ address, watch = false }: UseTokenBalanceOptio
     functionName: 'splitMultiplier',
   });
 
-  // Format balance
+  // Format balance with max 4 decimal places
   const formattedBalance = balance && decimals
-    ? formatUnits(balance, decimals)
+    ? parseFloat(formatUnits(balance, decimals)).toFixed(4).replace(/\.?0+$/, '')
     : '0';
 
   return {
