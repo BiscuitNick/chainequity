@@ -35,18 +35,22 @@ export default function CorporatePage() {
     setError('');
     setActiveAction('split');
 
-    const ratio = parseInt(splitRatio);
+    const ratio = parseFloat(splitRatio);
     if (isNaN(ratio) || ratio <= 1) {
       setError('Split ratio must be greater than 1');
       return;
     }
 
     try {
+      // Convert ratio to basis points (e.g., 2.5 → 25000)
+      const BASIS_POINTS = 10000;
+      const multiplierBasisPoints = Math.floor(ratio * BASIS_POINTS);
+
       writeContract({
         address: contractAddress,
         abi,
         functionName: 'executeSplit',
-        args: [BigInt(ratio)],
+        args: [BigInt(multiplierBasisPoints)],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to execute split');
@@ -116,21 +120,22 @@ export default function CorporatePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="splitRatio">Split Ratio (e.g., 7 for 7-for-1 split)</Label>
+                <Label htmlFor="splitRatio">Split Ratio (e.g., 2.5 for 2.5-for-1 split)</Label>
                 <Input
                   id="splitRatio"
                   type="number"
                   value={splitRatio}
                   onChange={(e) => setSplitRatio(e.target.value)}
-                  placeholder="7"
-                  min="2"
+                  placeholder="2"
+                  min="1.01"
+                  step="0.1"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Current Multiplier: {splitMultiplier.toString()}x
+                  Current Multiplier: {(Number(splitMultiplier) / 10000).toFixed(1)}x
                 </p>
-                {splitRatio && parseInt(splitRatio) > 1 && (
+                {splitRatio && parseFloat(splitRatio) > 1 && (
                   <p className="text-sm">
-                    After split: {(splitMultiplier * BigInt(splitRatio)).toString()}x total multiplier
+                    After split: {((Number(splitMultiplier) / 10000) * parseFloat(splitRatio)).toFixed(1)}x total multiplier
                   </p>
                 )}
               </div>
@@ -139,7 +144,7 @@ export default function CorporatePage() {
                 onClick={handleSplit}
                 disabled={
                   !splitRatio ||
-                  parseInt(splitRatio) <= 1 ||
+                  parseFloat(splitRatio) <= 1 ||
                   isPending ||
                   isConfirming
                 }
@@ -152,8 +157,8 @@ export default function CorporatePage() {
 
               <Alert>
                 <AlertDescription className="text-xs">
-                  A 7-for-1 split means each token holder will see their balance multiplied by 7,
-                  while maintaining their proportional ownership.
+                  A 2.5-for-1 split means each token holder will see their balance multiplied by 2.5,
+                  while maintaining their proportional ownership. Decimals are supported.
                 </AlertDescription>
               </Alert>
             </CardContent>

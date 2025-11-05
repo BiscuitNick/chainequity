@@ -6,7 +6,7 @@
  * Wraps the application with necessary providers for Web3 functionality:
  * - WagmiProvider: Provides Web3 state management
  * - QueryClientProvider: Enables React Query for data fetching
- * - RainbowKitProvider: Provides wallet connection UI
+ * - RainbowKitProvider: Provides wallet connection UI (when available)
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

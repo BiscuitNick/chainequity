@@ -57,7 +57,7 @@ export default function Home() {
                 <CardDescription>Split Multiplier</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{splitMultiplier.toString()}x</p>
+                <p className="text-2xl font-bold">{(Number(splitMultiplier) / 10000).toFixed(1)}x</p>
               </CardContent>
             </Card>
             <Card className="md:col-span-2">

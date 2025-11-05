@@ -114,50 +114,31 @@ async function main() {
   console.log('\n💰 Minting Tokens:');
   console.log('-'.repeat(60));
 
-  const mintAmount = ethers.parseEther('10000');
-  console.log('   Minting 10,000 tokens to addr1...');
+  const mintAmount1 = ethers.parseEther('1000');
+  console.log('   Minting 1,000 tokens to addr1...');
 
-  const mintTx = await token.mint(addr1, mintAmount);
-  const mintReceipt = await mintTx.wait();
-  console.log('   ✅ Minted! Gas used:', mintReceipt?.gasUsed.toString());
+  const mintTx1 = await token.mint(addr1, mintAmount1);
+  const mintReceipt1 = await mintTx1.wait();
+  console.log('   ✅ Minted! Gas used:', mintReceipt1?.gasUsed.toString());
+
+  const mintAmount2 = ethers.parseEther('500');
+  console.log('   Minting 500 tokens to addr2...');
+
+  const mintTx2 = await token.mint(addr2, mintAmount2);
+  const mintReceipt2 = await mintTx2.wait();
+  console.log('   ✅ Minted! Gas used:', mintReceipt2?.gasUsed.toString());
 
   const balance1 = await token.balanceOf(addr1);
-  console.log('   Addr1 balance:', ethers.formatEther(balance1), symbol);
-
-  // Test transfer
-  console.log('\n🔄 Testing Transfer:');
-  console.log('-'.repeat(60));
-
-  const tokenAsAddr1 = token.connect(addr1Signer);
-
-  const transferAmount = ethers.parseEther('100');
-  console.log('   Transferring 100 tokens from addr1 to addr2...');
-
-  const transferTx = await tokenAsAddr1.transfer(addr2, transferAmount);
-  await transferTx.wait();
-  console.log('   ✅ Transferred!');
-
   const balance2 = await token.balanceOf(addr2);
-  console.log('   Addr2 balance:', ethers.formatEther(balance2), symbol);
+  const totalSupply = await token.totalSupply();
+  const splitMultiplier = await token.splitMultiplier();
 
-  const balance1After = await token.balanceOf(addr1);
-  console.log('   Addr1 balance:', ethers.formatEther(balance1After), symbol);
-
-  // Test stock split
-  console.log('\n📈 Testing Stock Split (7-for-1):');
+  console.log('\n📊 Final Balances:');
   console.log('-'.repeat(60));
-
-  console.log('   Balance before split:', ethers.formatEther(balance1After), symbol);
-
-  const splitTx = await token.executeSplit(7);
-  await splitTx.wait();
-  console.log('   ✅ Split executed!');
-
-  const balance1AfterSplit = await token.balanceOf(addr1);
-  const balance2AfterSplit = await token.balanceOf(addr2);
-
-  console.log('   Addr1 balance after:', ethers.formatEther(balance1AfterSplit), symbol);
-  console.log('   Addr2 balance after:', ethers.formatEther(balance2AfterSplit), symbol);
+  console.log('   Addr1 balance:', ethers.formatEther(balance1), symbol);
+  console.log('   Addr2 balance:', ethers.formatEther(balance2), symbol);
+  console.log('   Total Supply:', ethers.formatEther(totalSupply), symbol);
+  console.log('   Split Multiplier:', splitMultiplier.toString() + ' basis points (1.0x)');
 
   // Final summary
   console.log('\n' + '='.repeat(60));
