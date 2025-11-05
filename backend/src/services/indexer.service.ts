@@ -572,15 +572,17 @@ export class IndexerService {
   /**
    * Sync historical events from a specific block
    */
-  private async syncHistoricalEvents(fromBlock: number): Promise<void> {
-    if (!this.contract || !this.wsProvider) {
+  public async syncHistoricalEvents(fromBlock: number): Promise<void> {
+    const provider = this.wsProvider || this.httpProvider;
+
+    if (!this.contract || !provider) {
       throw new Error('Contract or provider not initialized');
     }
 
     console.log(`\n📚 Syncing historical events from block ${fromBlock}...`);
 
     try {
-      const currentBlock = await this.wsProvider.getBlockNumber();
+      const currentBlock = await provider.getBlockNumber();
       const toBlock = currentBlock;
 
       console.log(`   Current block: ${currentBlock}`);

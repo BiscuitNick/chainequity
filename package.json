@@ -10,6 +10,7 @@
     "test": "hardhat test",
     "test:specific": "hardhat test",
     "indexer": "npm --prefix backend run test-indexer-local",
+    "watch-indexer": "npm --prefix backend run watch-indexer",
     "prepare": "husky",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
