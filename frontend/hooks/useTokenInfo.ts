@@ -40,7 +40,7 @@ export function useTokenInfo() {
   });
 
   // Get split multiplier
-  const { data: splitMultiplier } = useReadContract({
+  const { data: splitMultiplier, isLoading: isSplitMultiplierLoading } = useReadContract({
     address: contractAddress,
     abi: CHAIN_EQUITY_TOKEN_ABI,
     functionName: 'splitMultiplier',
@@ -64,7 +64,8 @@ export function useTokenInfo() {
     decimals: decimals ?? 18,
     totalSupply: totalSupply ?? 0n,
     formattedTotalSupply,
-    splitMultiplier: splitMultiplier ?? 1n,
+    splitMultiplier: splitMultiplier ?? 10000n,
+    isSplitMultiplierLoading,
     owner,
     contractAddress,
   };

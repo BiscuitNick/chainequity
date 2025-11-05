@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export default function MintPage() {
   const { isConnected } = useAccount();
   const { address: contractAddress, abi } = useContract();
-  const { decimals, symbol, owner, splitMultiplier } = useTokenInfo();
+  const { decimals, symbol, owner, splitMultiplier, isSplitMultiplierLoading } = useTokenInfo();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
@@ -44,12 +44,24 @@ export default function MintPage() {
       return;
     }
 
+    // Validate splitMultiplier is loaded
+    if (!splitMultiplier || splitMultiplier === 0n) {
+      setError('Contract data still loading. Please wait...');
+      return;
+    }
+
     try {
       // Convert displayed amount to actual amount accounting for split multiplier
       // actualAmount = displayedAmount * BASIS_POINTS / splitMultiplier
       const BASIS_POINTS = 10000;
       const displayedAmountWei = parseUnits(amount, decimals);
       const actualAmountWei = (displayedAmountWei * BigInt(BASIS_POINTS)) / splitMultiplier;
+
+      // Additional safety check
+      if (actualAmountWei === 0n) {
+        setError('Calculated amount is too small');
+        return;
+      }
 
       writeContract({
         address: contractAddress,
@@ -150,11 +162,16 @@ export default function MintPage() {
                   !isAddress(recipient) ||
                   parseFloat(amount) <= 0 ||
                   isPending ||
-                  isConfirming
+                  isConfirming ||
+                  isSplitMultiplierLoading
                 }
                 className="w-full"
               >
-                {isPending || isConfirming ? 'Minting...' : `Mint ${amount || '0'} ${symbol}`}
+                {isSplitMultiplierLoading
+                  ? 'Loading contract data...'
+                  : isPending || isConfirming
+                  ? 'Minting...'
+                  : `Mint ${amount || '0'} ${symbol}`}
               </Button>
             </CardContent>
           </Card>

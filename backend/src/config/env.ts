@@ -18,6 +18,10 @@ export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
 
+  // Network
+  useLocalNetwork: process.env.USE_LOCAL_NETWORK === 'true' || false,
+  localRpcUrl: process.env.LOCAL_RPC_URL || 'http://127.0.0.1:8545',
+
   // Alchemy
   alchemyApiKey: process.env.ALCHEMY_API_KEY || '',
   alchemyNetwork: process.env.ALCHEMY_NETWORK || 'polygon-amoy',

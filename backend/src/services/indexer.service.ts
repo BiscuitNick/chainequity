@@ -42,6 +42,7 @@ interface IndexerConfig {
  */
 export class IndexerService {
   private wsProvider: ethers.WebSocketProvider | null = null;
+  private httpProvider: ethers.JsonRpcProvider | null = null;
   private contract: ethers.Contract | null = null;
   private db: ReturnType<typeof getDatabase>;
   private isRunning: boolean = false;
@@ -49,10 +50,13 @@ export class IndexerService {
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 5000; // 5 seconds
   private config: IndexerConfig;
+  private isLocalNetwork: boolean = false;
+  private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(indexerConfig: IndexerConfig) {
     this.config = indexerConfig;
     this.db = getDatabase();
+    this.isLocalNetwork = indexerConfig.wsUrl.startsWith('http://') || indexerConfig.wsUrl.startsWith('https://');
     console.log('IndexerService initialized');
   }
 
@@ -97,6 +101,12 @@ export class IndexerService {
 
     console.log('\n⏹️  Stopping Event Indexer...');
 
+    // Stop polling if active
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+
     if (this.contract) {
       // Remove all listeners
       this.contract.removeAllListeners();
@@ -105,6 +115,11 @@ export class IndexerService {
     if (this.wsProvider) {
       await this.wsProvider.destroy();
       this.wsProvider = null;
+    }
+
+    if (this.httpProvider) {
+      await this.httpProvider.destroy();
+      this.httpProvider = null;
     }
 
     this.contract = null;
@@ -117,32 +132,39 @@ export class IndexerService {
    */
   private async connect(): Promise<void> {
     try {
-      console.log('📡 Connecting to WebSocket provider...');
+      if (this.isLocalNetwork) {
+        console.log('📡 Connecting to local HTTP provider...');
 
-      // Create WebSocket provider
-      this.wsProvider = new ethers.WebSocketProvider(this.config.wsUrl);
+        // Create HTTP provider for local Hardhat
+        this.httpProvider = new ethers.JsonRpcProvider(this.config.wsUrl);
 
-      // Setup connection error handlers
-      this.wsProvider.on('error', (error) => {
-        console.error('WebSocket error:', error);
-        this.handleDisconnection();
-      });
+        // Create contract instance
+        this.contract = new ethers.Contract(
+          this.config.contractAddress,
+          ChainEquityTokenABI,
+          this.httpProvider
+        );
 
-      this.wsProvider.on('close', () => {
-        console.log('WebSocket connection closed');
-        this.handleDisconnection();
-      });
+        // Test connection
+        const network = await this.httpProvider.getNetwork();
+        console.log('✅ Connected to network:', network.name, `(chainId: ${network.chainId})`);
+      } else {
+        console.log('📡 Connecting to WebSocket provider...');
 
-      // Create contract instance
-      this.contract = new ethers.Contract(
-        this.config.contractAddress,
-        ChainEquityTokenABI,
-        this.wsProvider
-      );
+        // Create WebSocket provider
+        this.wsProvider = new ethers.WebSocketProvider(this.config.wsUrl);
 
-      // Test connection
-      const network = await this.wsProvider.getNetwork();
-      console.log('✅ Connected to network:', network.name, `(chainId: ${network.chainId})`);
+        // Create contract instance
+        this.contract = new ethers.Contract(
+          this.config.contractAddress,
+          ChainEquityTokenABI,
+          this.wsProvider
+        );
+
+        // Test connection
+        const network = await this.wsProvider.getNetwork();
+        console.log('✅ Connected to network:', network.name, `(chainId: ${network.chainId})`);
+      }
 
       this.reconnectAttempts = 0;
     } catch (error) {
@@ -646,16 +668,27 @@ export class IndexerService {
  * Create IndexerService from environment variables
  */
 export function createIndexerService(): IndexerService {
+  if (!config.tokenContractAddress) {
+    throw new Error('TOKEN_CONTRACT_ADDRESS not set in environment');
+  }
+
+  // Use local Hardhat node if configured
+  if (config.useLocalNetwork) {
+    console.log('🔧 Using local Hardhat network');
+    return new IndexerService({
+      rpcUrl: config.localRpcUrl,
+      wsUrl: config.localRpcUrl, // Will use HTTP polling instead of WebSocket
+      contractAddress: config.tokenContractAddress,
+    });
+  }
+
+  // Use Alchemy for remote networks
   const wsUrl = config.alchemyApiKey
     ? `wss://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`
     : '';
 
   if (!wsUrl) {
-    throw new Error('ALCHEMY_API_KEY not set in environment');
-  }
-
-  if (!config.tokenContractAddress) {
-    throw new Error('TOKEN_CONTRACT_ADDRESS not set in environment');
+    throw new Error('ALCHEMY_API_KEY not set in environment or USE_LOCAL_NETWORK not enabled');
   }
 
   const rpcUrl = `https://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`;

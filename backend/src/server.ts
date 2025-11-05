@@ -44,6 +44,7 @@ import issuerRoutes from './api/issuer.routes.js';
 import corporateRoutes from './api/corporate.routes.js';
 import captableRoutes from './api/captable.routes.js';
 import analyticsRoutes from './api/analytics.routes.js';
+import eventsRoutes from './api/events.routes.js';
 
 // Import middleware
 import { apiLimiter } from './middleware/rateLimit.js';
@@ -69,6 +70,7 @@ app.use('/api/issuer', issuerRoutes);
 app.use('/api/corporate', corporateRoutes);
 app.use('/api/captable', captableRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/events', eventsRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -82,6 +84,7 @@ app.get('/', (req: Request, res: Response) => {
         corporate: '/api/corporate',
         captable: '/api/captable',
         analytics: '/api/analytics',
+        events: '/api/events',
       },
     },
   });
@@ -122,6 +125,15 @@ function startServer() {
 ║ Database:    ${config.databasePath.padEnd(28)}║
 ╚═══════════════════════════════════════════╝
       `);
+    });
+
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${config.port} is already in use`);
+      } else {
+        console.error('Server error:', error);
+      }
+      process.exit(1);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -164,7 +176,14 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start the server if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Check both relative and absolute paths
+const scriptPath = process.argv[1];
+const isDirectExecution =
+  import.meta.url === `file://${scriptPath}` ||
+  import.meta.url.endsWith(scriptPath) ||
+  scriptPath.endsWith('server.ts');
+
+if (isDirectExecution) {
   startServer();
 }
 
