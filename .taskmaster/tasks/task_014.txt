@@ -1,0 +1,62 @@
+# Task ID: 14
+# Title: Implement Auto-Indexer for Local Development
+# Status: pending
+# Dependencies: 5
+# Priority: medium
+# Description: Create automatic blockchain indexing service using WebSocket subscription for local development, enabling real-time database updates when new blocks are mined
+# Details:
+Implement automatic indexing for local development:
+1. WebSocket Block Watcher Service:
+   - Create new service that subscribes to 'block' events via WebSocket
+   - Connect to local Hardhat node (ws://127.0.0.1:8545)
+   - Listen for new blocks in real-time
+   - Trigger indexer execution automatically on new blocks
+2. Auto-Indexer Implementation:
+   - Create backend/src/services/autoIndexer.service.ts
+   - Initialize WebSocket provider using ethers.js
+   - Subscribe to provider.on('block', callback)
+   - Execute existing indexer logic when new block detected
+   - Implement debouncing to avoid duplicate indexing
+3. CLI Command:
+   - Add new 'watch-indexer' or 'dev:watch' npm script
+   - Starts persistent process that runs alongside backend dev server
+   - Graceful shutdown on SIGINT/SIGTERM
+   - Reconnection logic for WebSocket disconnections
+4. Logging & Monitoring:
+   - Minimal logging: only show when new blocks are indexed
+   - Display block number and event count
+   - Silent mode for 'no new blocks' checks
+   - Error logging for WebSocket failures
+5. Local Development Only:
+   - Only runs when connecting to localhost:8545
+   - Add environment check to prevent running in production
+   - Documentation for local dev workflow
+
+# Test Strategy:
+Test WebSocket connection to local Hardhat node, verify indexer runs automatically on new block events, test reconnection after WebSocket disconnection, validate that frontend shows updates immediately after transactions, ensure graceful shutdown works correctly
+
+# Subtasks:
+## 1. Create WebSocket block watcher service [pending]
+### Dependencies: None
+### Description: Implement WebSocket connection to local Hardhat node and subscribe to new block events using ethers.js provider
+### Details:
+Create backend/src/services/autoIndexer.service.ts with WebSocket provider initialization. Use ethers.WebSocketProvider to connect to ws://127.0.0.1:8545. Implement provider.on('block', (blockNumber) => {}) subscription to listen for new blocks in real-time. Add environment check to only run when RPC_URL points to localhost. Include basic error handling for connection failures. Export service class with start() and stop() methods.
+
+## 2. Implement auto-indexer logic with debouncing [pending]
+### Dependencies: 14.1
+### Description: Create indexer execution logic that runs automatically when new blocks are detected, with debouncing to prevent duplicate processing
+### Details:
+Import and use existing indexer service from backend/src/services/indexer.service.ts. Implement block callback that triggers indexer.syncEvents() when new blocks arrive. Add debouncing logic (300-500ms) to batch rapid block production and avoid redundant indexing. Track last processed block number to prevent reprocessing. Add minimal logging that only displays when blocks are actually indexed (block number + event count). Handle indexer errors gracefully without crashing the watcher.
+
+## 3. Add CLI command and npm script [pending]
+### Dependencies: 14.2
+### Description: Create executable script and npm command for running the auto-indexer alongside the dev server
+### Details:
+Create backend/src/watch-indexer.ts as executable entry point that initializes and starts the auto-indexer service. Add shebang and ensure it's executable. Add 'watch-indexer' script to backend/package.json: 'npm run build && node dist/watch-indexer.js'. Also add to root package.json for convenience. Include helpful startup message showing connection status and instructions. Document in README how to run the watcher alongside backend dev server.
+
+## 4. Add graceful shutdown and reconnection handling [pending]
+### Dependencies: 14.2, 14.3
+### Description: Implement proper cleanup on shutdown signals and automatic reconnection logic for WebSocket disconnections
+### Details:
+Add SIGINT and SIGTERM signal handlers that close WebSocket connection gracefully and exit cleanly. Display 'Shutting down auto-indexer...' message on exit. Implement WebSocket error and close event handlers. Add automatic reconnection with exponential backoff (1s, 2s, 4s, 8s max). Display connection status messages: 'Connected to local node', 'Disconnected, reconnecting in Xs', 'Reconnected successfully'. Limit reconnection attempts or provide option to disable reconnection after multiple failures.
+

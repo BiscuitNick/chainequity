@@ -1,6 +1,6 @@
 # Task ID: 13
 # Title: Implement Historical 'As-of Block' Snapshot Feature
-# Status: pending
+# Status: done
 # Dependencies: 6, 7, 9, 11
 # Priority: medium
 # Description: Generate on-demand historical cap-table snapshots at any given block number for auditing and compliance purposes
@@ -37,25 +37,25 @@ Implement historical point-in-time snapshot capability:
 Test historical snapshot accuracy against known past states, verify ownership calculations match on-chain data, test with various block numbers including edge cases, validate query performance with large event histories, ensure split multipliers are correctly applied
 
 # Subtasks:
-## 1. Enhance backend captable service with historical query support [pending]
+## 1. Enhance backend captable service with historical query support [done]
 ### Dependencies: None
 ### Description: Extend captable.service.ts to support historical cap-table reconstruction at any given block number using event-based balance calculation
 ### Details:
 Modify captable.service.ts to add historical snapshot capability. Implement getSnapshotAtBlock(blockNumber) method that queries the events table to reconstruct token holder balances at the specified block. Calculate ownership percentages based on total supply at that block. Properly apply split multipliers that were active at the historical block. Retrieve all relevant events (Transfer, StockSplit) up to and including the specified block. Optimize database queries with proper indexes on block_number and address fields. Add caching layer for frequently queried historical blocks. Handle edge cases like querying blocks before contract deployment or before first events.
 
-## 2. Implement CLI snapshot command with formatting options [pending]
+## 2. Implement CLI snapshot command with formatting options [done]
 ### Dependencies: 13.1
 ### Description: Create new 'chainequity snapshot <block>' CLI command that displays historical cap-table state with support for multiple output formats
 ### Details:
 Create cli/commands/snapshot.ts with snapshot command implementation. Accept block number as required argument. Add --format flag supporting 'table', 'csv', and 'json' output formats. Display token holder addresses, balances, and ownership percentages at the specified block. Show metadata including block number, block timestamp, and total event count up to that block. Format table output using cli-table3 with proper column alignment. Implement CSV export with headers (Address, Balance, Ownership %, Block Number, Timestamp). Generate JSON output with complete metadata and holder array. Add validation for block number (must be positive integer, not in future). Include error handling for blocks with no data or before token deployment.
 
-## 3. Extend REST API endpoint to support block query parameter [pending]
+## 3. Extend REST API endpoint to support block query parameter [done]
 ### Dependencies: 13.1
 ### Description: Modify GET /api/captable endpoint to accept optional ?block=<number> query parameter for retrieving historical cap-table snapshots
 ### Details:
 Update backend/src/routes/captable.ts to handle optional 'block' query parameter. Parse and validate block number from query string. Call getSnapshotAtBlock() when block parameter is provided, otherwise return current state. Include metadata in response: block number, block timestamp, holder count, total supply. Add proper error responses for invalid block numbers (400 Bad Request). Implement response caching for historical snapshots with appropriate cache headers. Add rate limiting for historical queries to prevent abuse. Update API documentation in comments with example requests. Ensure backward compatibility - endpoint works without block parameter as before.
 
-## 4. Add block selector to frontend captable page [pending]
+## 4. Add block selector to frontend captable page [done]
 ### Dependencies: 13.3
 ### Description: Integrate block number selector UI component on the captable page with support for ?block=<number> URL query parameter
 ### Details:

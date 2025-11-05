@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Initialize Hardhat Project and Configure Blockchain Infrastructure",
         "description": "Set up the base Hardhat development environment with Polygon Amoy testnet configuration, Alchemy integration, and project dependencies",
         "details": "Create a new Hardhat TypeScript project with the following configuration:\n1. Initialize project: `npx hardhat init` (TypeScript project)\n2. Install core dependencies: `@openzeppelin/contracts@^5.0.0`, `@nomicfoundation/hardhat-toolbox`, `@nomicfoundation/hardhat-verify`, `alchemy-sdk@^3.0.0`, `dotenv`\n3. Configure hardhat.config.ts with:\n   - Solidity 0.8.20 with optimizer (200 runs)\n   - Polygon Amoy network (chainId: 80002)\n   - Alchemy RPC endpoint configuration\n   - Polygonscan verification setup\n   - Gas reporter configuration\n4. Setup .env file with placeholders for ALCHEMY_API_KEY, DEPLOYER_PRIVATE_KEY, POLYGONSCAN_API_KEY\n5. Create project structure directories: contracts/, scripts/, test/, backend/, cli/, frontend/",
@@ -63,7 +63,7 @@
         "expansionPrompt": "Break down into: 1) Initialize Hardhat TypeScript project with basic structure, 2) Install and configure dependencies (OpenZeppelin, Alchemy SDK, etc.), 3) Configure hardhat.config.ts with networks and compiler settings, 4) Setup environment variables and project directories"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Develop ChainEquityToken Smart Contract",
         "description": "Implement the core ERC-20 token contract with allowlist-based transfer restrictions, virtual stock splits, and mutable symbol capabilities",
         "details": "Create ChainEquityToken.sol implementing:\n1. Inherit from OpenZeppelin ERC20 and Ownable\n2. State variables:\n   - `mapping(address => bool) public allowlist`\n   - `uint256 public splitMultiplier = 1`\n   - Mutable `_symbol` and `_name` storage\n3. Core functions:\n   - `approveWallet(address)` and `revokeWallet(address)` for allowlist management\n   - Override `_update()` to enforce allowlist checks on transfers\n   - `mint(address to, uint256 amount)` restricted to owner\n   - `executeSplit(uint256 multiplier)` for virtual stock splits\n   - `updateSymbol(string memory newSymbol)` for symbol changes\n   - Override `balanceOf()` and `totalSupply()` to multiply by splitMultiplier\n4. Events: WalletApproved, WalletRevoked, StockSplit, SymbolChanged, TransferBlocked\n5. Implement proper access control with onlyOwner modifiers",
@@ -152,7 +152,7 @@
         "expansionPrompt": "Break down into: 1) Create base ERC20 structure with OpenZeppelin imports, 2) Implement allowlist mechanism with approval/revocation functions, 3) Override transfer functions to enforce allowlist restrictions, 4) Implement virtual stock split functionality with multiplier logic, 5) Add mutable symbol capability with proper events, 6) Create comprehensive events and error handling"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Backend Services Foundation and Database Setup",
         "description": "Establish the Node.js/TypeScript backend infrastructure with Express API server, SQLite database, and Alchemy SDK integration",
         "details": "Setup backend services:\n1. Initialize backend/ directory with TypeScript configuration\n2. Install dependencies: `express`, `better-sqlite3`, `alchemy-sdk`, `typescript`, `@types/*`\n3. Create SQLite database schema (schema.sql):\n   - events table (block_number, transaction_hash, event_type, from_address, to_address, amount, data JSON, timestamp)\n   - balances table (address, balance, last_updated_block, last_updated_timestamp)\n   - corporate_actions table (action_type, block_number, transaction_hash, old_value, new_value, timestamp)\n4. Implement database.ts with connection management and prepared statements\n5. Setup Alchemy SDK configuration (alchemy.config.ts) with WebSocket support\n6. Create Express server.ts with basic routing structure\n7. Implement TypeScript interfaces for all data models",
@@ -227,7 +227,7 @@
         "expansionPrompt": "Break down into: 1) Initialize TypeScript backend project with proper configuration, 2) Design and implement SQLite database schema with all tables, 3) Create database connection layer with Better-SQLite3, 4) Setup Express server with middleware and basic routing, 5) Configure Alchemy SDK with WebSocket support"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Implement Issuer Service for Token Management",
         "description": "Build the core service responsible for wallet approvals, token minting, and executing corporate actions through smart contract interactions",
         "details": "Create issuer.service.ts with:\n1. Initialize Alchemy SDK client and contract instance with signer\n2. Wallet management methods:\n   - `approveWallet(address)`: Submit approval transaction\n   - `revokeWallet(address)`: Submit revocation transaction\n   - `isWalletApproved(address)`: Query allowlist status\n   - `getApprovedWallets()`: Return all approved addresses\n3. Token operations:\n   - `mintTokens(to, amount)`: Mint with proper unit conversion\n   - Gas estimation for all operations\n4. Corporate actions:\n   - `executeSplit(multiplier)`: Trigger stock split\n   - `updateSymbol(newSymbol)`: Change token symbol\n5. Transaction management:\n   - Wait for confirmations\n   - Return formatted transaction receipts\n   - Error handling with retry logic",
@@ -305,7 +305,7 @@
         "expansionPrompt": "Break down into: 1) Create service class with Alchemy SDK initialization and contract binding, 2) Implement wallet management methods (approve/revoke/query), 3) Build token minting functionality with gas estimation, 4) Add corporate action methods (split/symbol change), 5) Implement transaction management with retry logic and error handling"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Build Event Indexer Service with Real-time Processing",
         "description": "Develop the blockchain event listener that processes Transfer, Approval, and Corporate Action events in real-time and maintains the local database state",
         "details": "Implement indexer.service.ts:\n1. WebSocket connection to Alchemy for real-time events\n2. Event listeners for:\n   - Transfer events: Update sender/recipient balances\n   - WalletApproved/Revoked: Track allowlist changes\n   - StockSplit: Record multiplier changes\n   - SymbolChanged: Log symbol updates\n3. Event processing pipeline:\n   - Parse event logs with proper ABI decoding\n   - Store in events table with full metadata\n   - Update balances table atomically\n   - Handle blockchain reorganizations\n4. Historical indexing:\n   - `reindexFromBlock(blockNumber)` for catching up\n   - Batch processing for efficiency\n5. Monitoring:\n   - Health checks for WebSocket connection\n   - Auto-reconnect on disconnection\n   - Event processing metrics",
@@ -394,7 +394,7 @@
         "expansionPrompt": "Break down into: 1) Setup WebSocket connection with Alchemy for real-time event monitoring, 2) Implement event listeners for all contract events, 3) Create event processing pipeline with ABI decoding, 4) Build database update logic for balances and events, 5) Implement blockchain reorganization handling, 6) Add historical indexing with batch processing capabilities"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Create Cap-Table Service for Ownership Analytics",
         "description": "Implement the service that generates real-time and historical cap-table snapshots with ownership percentages and export capabilities",
         "details": "Build captable.service.ts:\n1. Core cap-table generation:\n   - `generateCapTable(blockNumber?)`: Query balances at specific block\n   - Calculate ownership percentages\n   - Account for split multipliers correctly\n   - Sort by balance descending\n2. Export functionality:\n   - `exportToCSV()`: Format with headers (Address, Balance, Ownership %, Last Updated)\n   - `exportToJSON()`: Structured JSON with metadata\n3. Analytics methods:\n   - `getHolderCount()`: Total unique holders\n   - `getTotalSupply()`: Accounting for splits\n   - `getOwnershipDistribution()`: Statistical analysis\n   - `getTopHolders(limit)`: Largest holders\n4. Historical queries:\n   - Point-in-time cap-table reconstruction\n   - Balance changes over time\n5. Performance optimization with indexed queries",
@@ -458,7 +458,7 @@
         "expansionPrompt": "Break down into: 1) Implement core cap-table generation with ownership percentage calculations, 2) Add export functionality for CSV and JSON formats, 3) Build analytics methods for holder statistics and distribution, 4) Implement historical cap-table queries with point-in-time reconstruction"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Develop CLI Tool for Operator Interactions",
         "description": "Create a comprehensive command-line interface for all token management operations with colored output and user-friendly formatting",
         "details": "Implement CLI with Commander.js:\n1. Project structure:\n   - cli/index.ts: Main entry point with command registration\n   - cli/commands/: Individual command files\n   - cli/utils/: Formatting and validation helpers\n2. Commands to implement:\n   - Wallet: `approve`, `revoke`, `status`, `list-approved`\n   - Token: `mint`, `transfer`, `balance`\n   - Corporate: `split`, `symbol`\n   - Cap-table: `captable` with --block and --format options\n   - Utilities: `deploy`, `verify`, `demo`\n3. Features:\n   - Colored output with chalk\n   - Table formatting with cli-table3\n   - Input validation and error handling\n   - Progress indicators for long operations\n   - Transaction confirmation prompts\n4. Configuration:\n   - Read from .env for network settings\n   - Support multiple networks (local, amoy)",
@@ -536,7 +536,7 @@
         "expansionPrompt": "Break down into: 1) Setup Commander.js project structure with command registration, 2) Implement wallet management commands (approve/revoke/status), 3) Create token operation commands (mint/transfer/balance), 4) Add corporate action commands (split/symbol), 5) Build utility commands with formatted output and error handling"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Contract Deployment and Verification Scripts",
         "description": "Create deployment automation scripts for local and Polygon Amoy networks with Polygonscan verification",
         "details": "Develop deployment infrastructure:\n1. scripts/deploy.ts:\n   - Deploy ChainEquityToken with initial parameters\n   - Store deployed address in .env\n   - Log deployment details (address, block, gas used)\n   - Support for different networks via --network flag\n2. scripts/verify.ts:\n   - Automated Polygonscan verification\n   - Constructor argument encoding\n   - Retry logic for verification API\n3. scripts/demo-flow.ts:\n   - Automated demonstration script\n   - Deploy contract\n   - Approve 3 test wallets\n   - Mint initial tokens\n   - Execute transfers (success and failure cases)\n   - Perform 7-for-1 stock split\n   - Change symbol\n   - Export cap-table at each stage\n4. scripts/setup-local.ts:\n   - Initialize local Hardhat node\n   - Fund test accounts\n   - Deploy contracts for development",
@@ -597,7 +597,7 @@
         "expansionPrompt": "Break down into: 1) Create main deployment script with network configuration, 2) Implement Polygonscan verification script with retry logic, 3) Build demo flow script for comprehensive testing, 4) Add local setup script for development environment"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "REST API Endpoints and Express Routes",
         "description": "Implement comprehensive REST API with proper error handling, input validation, and response formatting",
         "details": "Create Express API routes:\n1. Issuer endpoints (api/routes.ts):\n   - POST /api/issuer/approve\n   - POST /api/issuer/revoke  \n   - GET /api/issuer/status/:address\n   - GET /api/issuer/approved\n   - POST /api/issuer/mint\n2. Corporate actions:\n   - POST /api/corporate/split\n   - POST /api/corporate/symbol\n   - GET /api/corporate/history\n3. Cap-table endpoints:\n   - GET /api/captable\n   - GET /api/captable/:blockNumber\n   - GET /api/captable/export?format=csv|json\n4. Analytics:\n   - GET /api/analytics/holders\n   - GET /api/analytics/supply\n   - GET /api/analytics/distribution\n5. Middleware:\n   - Request validation\n   - Error handling\n   - CORS configuration\n   - Rate limiting\n   - Response formatting",
@@ -677,7 +677,7 @@
         "expansionPrompt": "Break down into: 1) Implement issuer management endpoints, 2) Create corporate action endpoints, 3) Build cap-table and export endpoints, 4) Add analytics endpoints, 5) Setup middleware for validation, error handling, and CORS"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Comprehensive Testing Suite and Documentation",
         "description": "Write unit tests, integration tests, gas benchmarks, and complete technical documentation for the entire system",
         "details": "Complete testing and documentation:\n1. Unit tests (test/unit/):\n   - ChainEquityToken.test.ts: 100% contract coverage\n   - Test allowlist, transfers, minting, splits, symbol changes\n   - Edge cases and security scenarios\n2. Integration tests (test/integration/):\n   - issuer.test.ts: End-to-end token operations\n   - indexer.test.ts: Event processing verification\n   - corporate-actions.test.ts: Complex workflows\n3. Gas reporting:\n   - Benchmark all operations\n   - Generate GAS_REPORT.md\n   - Verify < 100k gas for transfers\n4. Documentation:\n   - README.md: Setup, usage, features\n   - ARCHITECTURE.md: System design, diagrams\n   - DECISIONS.md: Technical decision log\n   - API.md: Endpoint documentation\n   - DISCLAIMER.md: Legal/regulatory warnings\n5. Code quality:\n   - ESLint + Prettier configuration\n   - Pre-commit hooks with Husky",
@@ -758,7 +758,7 @@
         "expansionPrompt": "Break down into: 1) Write unit tests for smart contract with full coverage, 2) Create integration tests for backend services, 3) Implement gas benchmarking and reporting, 4) Write comprehensive technical documentation (README, API, Architecture), 5) Setup code quality tools (linting, formatting, pre-commit hooks)"
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Next.js Frontend Dashboard (Optional)",
         "description": "Build a web-based operator dashboard with shadcn/ui components for visual token management and cap-table viewing",
         "details": "Create Next.js 15 frontend:\n1. Setup Next.js with TypeScript and Tailwind CSS\n2. Install shadcn/ui components and Alchemy SDK\n3. Pages to implement:\n   - Home: Dashboard with stats and recent activity\n   - /approve: Wallet approval management UI\n   - /mint: Token minting interface\n   - /captable: Interactive cap-table viewer\n   - /corporate: Corporate actions interface\n4. Components:\n   - WalletConnect.tsx: Web3 wallet integration\n   - ApprovalForm.tsx: Approve/revoke interface\n   - MintForm.tsx: Token minting with validation\n   - CapTableView.tsx: Sortable/filterable table\n   - CorporateActions.tsx: Split and symbol change forms\n5. Features:\n   - Real-time updates via WebSocket\n   - Transaction status tracking\n   - Export functionality\n   - Responsive design",
@@ -836,7 +836,7 @@
         "expansionPrompt": "Break down into: 1) Setup Next.js 15 with TypeScript and Tailwind CSS, 2) Implement wallet connection and Web3 integration, 3) Create core pages (dashboard, approval, minting, cap-table), 4) Build reusable components with shadcn/ui, 5) Add real-time updates via WebSocket"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Production Deployment and Demo Execution",
         "description": "Deploy the complete system to Polygon Amoy testnet and execute a comprehensive demonstration of all features",
         "details": "Final deployment steps:\n1. Deploy ChainEquityToken to Polygon Amoy\n2. Verify contract on Polygonscan\n3. Deploy backend services to cloud (optional):\n   - Dockerize backend services\n   - Setup persistent SQLite storage\n   - Configure environment variables\n4. Run complete demo flow:\n   - Approve 5 test wallets\n   - Mint 10,000 tokens each to 3 wallets\n   - Execute various transfers (success and blocked)\n   - Perform 7-for-1 stock split\n   - Change symbol from CEQ to CEQX\n   - Generate cap-table at each stage\n5. Create demo video/documentation:\n   - Record CLI interactions\n   - Show Polygonscan transactions\n   - Demonstrate cap-table changes\n   - Highlight compliance features\n6. Performance validation:\n   - Verify gas costs meet targets\n   - Test system under load\n   - Validate data consistency",
@@ -900,7 +900,7 @@
         "expansionPrompt": "Break down into: 1) Deploy and verify contract on Polygon Amoy, 2) Setup backend services (optional cloud deployment), 3) Execute comprehensive demo flow with all features, 4) Create demo documentation and validate performance metrics"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement Historical 'As-of Block' Snapshot Feature",
         "description": "Generate on-demand historical cap-table snapshots at any given block number for auditing and compliance purposes",
         "details": "Implement historical point-in-time snapshot capability:\n1. Backend Service Enhancement:\n   - Extend captable.service.ts to support historical queries\n   - Implement on-demand computation from events table\n   - Calculate balances, ownership percentages at specific block\n   - Include historical events up to specified block\n   - Optimize queries with proper indexing\n2. CLI Command:\n   - Add new 'snapshot <block>' command\n   - Display cap-table state at specified block\n   - Support --format flag for CSV/JSON export\n   - Show ownership percentages and event history\n3. API Endpoint Enhancement:\n   - Extend GET /api/captable?block=<number>\n   - Support query parameter for block number\n   - Return historical snapshot data\n   - Include metadata (block number, timestamp)\n4. Frontend Integration:\n   - Add block number selector to captable page\n   - Support ?block=<number> URL query parameter\n   - Display historical state with visual indicators\n   - Show block timestamp and event count\n5. Data Requirements:\n   - Token holder addresses and balances at block\n   - Ownership percentages at that point in time\n   - Historical events leading to that state\n   - Account for split multipliers correctly",
@@ -969,16 +969,121 @@
           }
         ],
         "updatedAt": "2025-11-05T20:04:14.114Z"
+      },
+      {
+        "id": 14,
+        "title": "Implement Auto-Indexer for Local Development",
+        "description": "Create automatic blockchain indexing service using WebSocket subscription for local development, enabling real-time database updates when new blocks are mined",
+        "details": "Implement automatic indexing for local development:\n1. WebSocket Block Watcher Service:\n   - Create new service that subscribes to 'block' events via WebSocket\n   - Connect to local Hardhat node (ws://127.0.0.1:8545)\n   - Listen for new blocks in real-time\n   - Trigger indexer execution automatically on new blocks\n2. Auto-Indexer Implementation:\n   - Create backend/src/services/autoIndexer.service.ts\n   - Initialize WebSocket provider using ethers.js\n   - Subscribe to provider.on('block', callback)\n   - Execute existing indexer logic when new block detected\n   - Implement debouncing to avoid duplicate indexing\n3. CLI Command:\n   - Add new 'watch-indexer' or 'dev:watch' npm script\n   - Starts persistent process that runs alongside backend dev server\n   - Graceful shutdown on SIGINT/SIGTERM\n   - Reconnection logic for WebSocket disconnections\n4. Logging & Monitoring:\n   - Minimal logging: only show when new blocks are indexed\n   - Display block number and event count\n   - Silent mode for 'no new blocks' checks\n   - Error logging for WebSocket failures\n5. Local Development Only:\n   - Only runs when connecting to localhost:8545\n   - Add environment check to prevent running in production\n   - Documentation for local dev workflow",
+        "testStrategy": "Test WebSocket connection to local Hardhat node, verify indexer runs automatically on new block events, test reconnection after WebSocket disconnection, validate that frontend shows updates immediately after transactions, ensure graceful shutdown works correctly",
+        "priority": "medium",
+        "dependencies": [
+          "5"
+        ],
+        "status": "pending",
+        "complexity": 4,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Create WebSocket block watcher service with ethers.js provider, 2) Implement auto-indexer logic with debouncing and existing indexer integration, 3) Add CLI command and npm script for watch-indexer, 4) Add graceful shutdown, reconnection handling, and minimal logging",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create WebSocket block watcher service",
+            "description": "Implement WebSocket connection to local Hardhat node and subscribe to new block events using ethers.js provider",
+            "dependencies": [],
+            "details": "Create backend/src/services/autoIndexer.service.ts with WebSocket provider initialization. Use ethers.WebSocketProvider to connect to ws://127.0.0.1:8545. Implement provider.on('block', (blockNumber) => {}) subscription to listen for new blocks in real-time. Add environment check to only run when RPC_URL points to localhost. Include basic error handling for connection failures. Export service class with start() and stop() methods.",
+            "status": "pending",
+            "testStrategy": "Test WebSocket connection establishes successfully to local Hardhat node, verify block subscription receives events when new blocks are mined, test that service only runs for localhost URLs"
+          },
+          {
+            "id": 2,
+            "title": "Implement auto-indexer logic with debouncing",
+            "description": "Create indexer execution logic that runs automatically when new blocks are detected, with debouncing to prevent duplicate processing",
+            "dependencies": [
+              1
+            ],
+            "details": "Import and use existing indexer service from backend/src/services/indexer.service.ts. Implement block callback that triggers indexer.syncEvents() when new blocks arrive. Add debouncing logic (300-500ms) to batch rapid block production and avoid redundant indexing. Track last processed block number to prevent reprocessing. Add minimal logging that only displays when blocks are actually indexed (block number + event count). Handle indexer errors gracefully without crashing the watcher.",
+            "status": "pending",
+            "testStrategy": "Verify indexer runs automatically when blocks are mined, test debouncing prevents duplicate indexing during rapid transactions, validate that database is updated correctly, ensure error handling doesn't crash the watcher"
+          },
+          {
+            "id": 3,
+            "title": "Add CLI command and npm script",
+            "description": "Create executable script and npm command for running the auto-indexer alongside the dev server",
+            "dependencies": [
+              2
+            ],
+            "details": "Create backend/src/watch-indexer.ts as executable entry point that initializes and starts the auto-indexer service. Add shebang and ensure it's executable. Add 'watch-indexer' script to backend/package.json: 'npm run build && node dist/watch-indexer.js'. Also add to root package.json for convenience. Include helpful startup message showing connection status and instructions. Document in README how to run the watcher alongside backend dev server.",
+            "status": "pending",
+            "testStrategy": "Test npm run watch-indexer starts successfully, verify it runs alongside npm run dev without conflicts, ensure script is executable and works from both backend and root directories"
+          },
+          {
+            "id": 4,
+            "title": "Add graceful shutdown and reconnection handling",
+            "description": "Implement proper cleanup on shutdown signals and automatic reconnection logic for WebSocket disconnections",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Add SIGINT and SIGTERM signal handlers that close WebSocket connection gracefully and exit cleanly. Display 'Shutting down auto-indexer...' message on exit. Implement WebSocket error and close event handlers. Add automatic reconnection with exponential backoff (1s, 2s, 4s, 8s max). Display connection status messages: 'Connected to local node', 'Disconnected, reconnecting in Xs', 'Reconnected successfully'. Limit reconnection attempts or provide option to disable reconnection after multiple failures.",
+            "status": "pending",
+            "testStrategy": "Test Ctrl+C gracefully shuts down the watcher, verify reconnection works after simulated WebSocket disconnection, test exponential backoff timing, ensure multiple reconnection attempts work correctly"
+          },
+          {
+            "id": 5,
+            "title": "Audit existing indexer components and plan auto-indexer integration",
+            "description": "Review current IndexerService, runner, and configs to outline integration points for the new auto-indexer service.",
+            "dependencies": [],
+            "details": "Inspect backend/src/services/indexer.service.ts, backend/src/indexer-runner.ts, and related configs to document hooks, database usage, and startup flow before coding.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 6,
+            "title": "Implement AutoIndexerService with local WebSocket block watcher",
+            "description": "Create the auto indexer service that subscribes to local Hardhat blocks and triggers debounced syncs.",
+            "dependencies": [
+              5
+            ],
+            "details": "Add backend/src/services/autoIndexer.service.ts using ethers.WebSocketProvider(ws://127.0.0.1:8545), implement 300-500ms debounce, env gating for USE_LOCAL_NETWORK with localhost guard, and invoke indexer.syncHistoricalEvents.",
+            "status": "pending",
+            "testStrategy": "Unit-test debounce helper and environment gating logic; mock provider to ensure sync trigger calls once per block."
+          },
+          {
+            "id": 7,
+            "title": "Create CLI watcher entry and npm scripts for running auto indexer",
+            "description": "Provide a CLI entrypoint and scripts to run the watcher alongside dev services with graceful shutdown.",
+            "dependencies": [
+              6
+            ],
+            "details": "Introduce backend/src/watch-indexer.ts to bootstrap AutoIndexerService, add npm scripts watch-indexer and root alias, and handle SIGINT/SIGTERM plus reconnect backoff for WebSocket drops.",
+            "status": "pending",
+            "testStrategy": "Run script against local Hardhat node, simulate SIGINT and forced provider.close to verify shutdown and reconnection behavior."
+          },
+          {
+            "id": 8,
+            "title": "Add minimal logging and local workflow documentation",
+            "description": "Ensure runtime logs and docs explain the local auto-indexer behavior.",
+            "dependencies": [
+              6,
+              7
+            ],
+            "details": "Implement concise logging for new block sync results and errors, add README updates describing USE_LOCAL_NETWORK flow, watcher usage, and troubleshooting for local development.",
+            "status": "pending",
+            "testStrategy": "Manual verification: run watcher to confirm log format, review README rendering locally."
+          }
+        ]
       }
     ],
     "metadata": {
       "version": "1.0.0",
       "lastModified": "2025-11-05T20:04:14.115Z",
-      "taskCount": 13,
+      "taskCount": 14,
       "completedCount": 11,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2025-11-05T22:01:04.500Z",
+      "description": "Tasks for master context"
     }
   }
 }
