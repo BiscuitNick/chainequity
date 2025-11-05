@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/select';
 import { formatUnits } from 'viem';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 interface Event {
   id: number;
   block_number: number;
@@ -55,7 +57,7 @@ export default function EventsPage() {
         setLoading(true);
         const offset = (page - 1) * limit;
         const typeParam = eventType !== 'all' ? `&eventType=${eventType}` : '';
-        const response = await fetch(`http://localhost:3000/api/events?limit=${limit}&offset=${offset}${typeParam}`);
+        const response = await fetch(`${API_URL}/api/events?limit=${limit}&offset=${offset}${typeParam}`);
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }

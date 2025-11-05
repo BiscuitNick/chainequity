@@ -9,6 +9,7 @@
     "cli": "tsx cli.ts",
     "test": "hardhat test",
     "test:specific": "hardhat test",
+    "indexer": "npm --prefix backend run test-indexer-local",
     "prepare": "husky",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",

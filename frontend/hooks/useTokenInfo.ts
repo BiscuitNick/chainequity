@@ -23,6 +23,9 @@ export function useTokenInfo() {
     address: contractAddress,
     abi: CHAIN_EQUITY_TOKEN_ABI,
     functionName: 'symbol',
+    query: {
+      refetchOnWindowFocus: true,
+    },
   });
 
   // Get decimals

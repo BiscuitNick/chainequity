@@ -18,6 +18,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SimplePagination } from '@/components/ui/pagination';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 interface CorporateAction {
   id: number;
   action_type: 'StockSplit' | 'SymbolChange' | 'NameChange';
@@ -54,7 +56,7 @@ export default function CorporatePage() {
     const fetchHistory = async () => {
       try {
         setHistoryLoading(true);
-        const response = await fetch(`http://localhost:3000/api/corporate/history?limit=${historyLimit}`);
+        const response = await fetch(`${API_URL}/api/corporate/history?limit=${historyLimit}`);
         if (!response.ok) {
           throw new Error('Failed to fetch corporate action history');
         }
@@ -111,8 +113,8 @@ export default function CorporatePage() {
     setActiveAction('split');
 
     const ratio = parseFloat(splitRatio);
-    if (isNaN(ratio) || ratio <= 1) {
-      setError('Split ratio must be greater than 1');
+    if (isNaN(ratio) || ratio < 0.01) {
+      setError('Split ratio must be at least 0.01 (100:1 reverse split)');
       return;
     }
 
@@ -195,22 +197,23 @@ export default function CorporatePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="splitRatio">Split Ratio (e.g., 2.5 for 2.5-for-1 split)</Label>
+                <Label htmlFor="splitRatio">Split Ratio (e.g., 2.5 for 2.5:1 split, 0.5 for 1:2 reverse split)</Label>
                 <Input
                   id="splitRatio"
                   type="number"
                   value={splitRatio}
                   onChange={(e) => setSplitRatio(e.target.value)}
                   placeholder="2"
-                  min="1.01"
-                  step="0.1"
+                  min="0.01"
+                  step="0.01"
                 />
                 <p className="text-sm text-muted-foreground">
                   Current Multiplier: {(Number(splitMultiplier) / 10000).toFixed(1)}x
                 </p>
-                {splitRatio && parseFloat(splitRatio) > 1 && (
+                {splitRatio && parseFloat(splitRatio) >= 0.01 && (
                   <p className="text-sm">
-                    After split: {((Number(splitMultiplier) / 10000) * parseFloat(splitRatio)).toFixed(1)}x total multiplier
+                    After split: {((Number(splitMultiplier) / 10000) * parseFloat(splitRatio)).toFixed(2)}x total multiplier
+                    {parseFloat(splitRatio) < 1 && <span className="text-amber-500 ml-1">(Reverse Split)</span>}
                   </p>
                 )}
               </div>
@@ -219,7 +222,7 @@ export default function CorporatePage() {
                 onClick={handleSplit}
                 disabled={
                   !splitRatio ||
-                  parseFloat(splitRatio) <= 1 ||
+                  parseFloat(splitRatio) < 0.01 ||
                   isPending ||
                   isConfirming
                 }
@@ -227,13 +230,16 @@ export default function CorporatePage() {
               >
                 {isPending && activeAction === 'split' || isConfirming && activeAction === 'split'
                   ? 'Executing...'
-                  : `Execute ${splitRatio || 'N'}-for-1 Split`}
+                  : parseFloat(splitRatio) < 1 && splitRatio
+                  ? `Execute ${(1 / parseFloat(splitRatio)).toFixed(0)}:1 Reverse Split`
+                  : `Execute ${splitRatio || 'N'}:1 Split`}
               </Button>
 
               <Alert>
                 <AlertDescription className="text-xs">
-                  A 2.5-for-1 split means each token holder will see their balance multiplied by 2.5,
-                  while maintaining their proportional ownership. Decimals are supported.
+                  Forward splits (e.g., 2.5:1) multiply balances, increasing token count.
+                  Reverse splits (e.g., 0.5 = 1:2) reduce balances, decreasing token count.
+                  All holders maintain their proportional ownership. Minimum ratio: 0.01 (100:1 reverse split).
                 </AlertDescription>
               </Alert>
             </CardContent>

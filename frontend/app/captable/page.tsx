@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import { formatUnits } from 'viem';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 interface CapTableHolder {
   address: string;
   balance: string;
@@ -57,7 +59,7 @@ export default function CapTablePage() {
     const fetchCapTable = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3000/api/captable');
+        const response = await fetch(`${API_URL}/api/captable`);
         if (!response.ok) {
           throw new Error('Failed to fetch cap table');
         }
@@ -80,7 +82,7 @@ export default function CapTablePage() {
     if (holderDetails.has(address)) return; // Already fetched
 
     try {
-      const response = await fetch(`http://localhost:3000/api/captable/holder/${address}`);
+      const response = await fetch(`${API_URL}/api/captable/holder/${address}`);
       if (!response.ok) {
         throw new Error('Failed to fetch holder details');
       }
@@ -107,7 +109,7 @@ export default function CapTablePage() {
   // Export to CSV
   const handleExportCSV = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/captable/export?format=csv');
+      const response = await fetch(`${API_URL}/api/captable/export?format=csv`);
       if (!response.ok) {
         throw new Error('Failed to export cap table');
       }
