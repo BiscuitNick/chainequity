@@ -1,0 +1,47 @@
+# Task ID: 1
+# Title: Initialize Hardhat Project and Configure Blockchain Infrastructure
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Set up the base Hardhat development environment with Polygon Amoy testnet configuration, Alchemy integration, and project dependencies
+# Details:
+Create a new Hardhat TypeScript project with the following configuration:
+1. Initialize project: `npx hardhat init` (TypeScript project)
+2. Install core dependencies: `@openzeppelin/contracts@^5.0.0`, `@nomicfoundation/hardhat-toolbox`, `@nomicfoundation/hardhat-verify`, `alchemy-sdk@^3.0.0`, `dotenv`
+3. Configure hardhat.config.ts with:
+   - Solidity 0.8.20 with optimizer (200 runs)
+   - Polygon Amoy network (chainId: 80002)
+   - Alchemy RPC endpoint configuration
+   - Polygonscan verification setup
+   - Gas reporter configuration
+4. Setup .env file with placeholders for ALCHEMY_API_KEY, DEPLOYER_PRIVATE_KEY, POLYGONSCAN_API_KEY
+5. Create project structure directories: contracts/, scripts/, test/, backend/, cli/, frontend/
+
+# Test Strategy:
+Verify Hardhat compiles a sample contract successfully, test network connectivity to Alchemy Polygon Amoy endpoint, ensure environment variables are properly loaded
+
+# Subtasks:
+## 1. Initialize Hardhat TypeScript project with basic structure [done]
+### Dependencies: None
+### Description: Create a new Hardhat project with TypeScript configuration and verify the basic project structure is properly set up
+### Details:
+Execute `npx hardhat init` and select TypeScript project option. Verify that the project initializes with the standard Hardhat folder structure including contracts/, scripts/, test/ directories. Ensure the basic TypeScript configuration files (tsconfig.json, hardhat.config.ts) are created correctly. Test that the sample contract compiles successfully with `npx hardhat compile` to validate the initial setup.
+
+## 2. Install and configure all required dependencies [done]
+### Dependencies: 1.1
+### Description: Install OpenZeppelin contracts, Hardhat toolbox, verification tools, Alchemy SDK, and other essential packages for the project
+### Details:
+Install the following packages with exact versions: `npm install --save-dev @nomicfoundation/hardhat-toolbox @nomicfoundation/hardhat-verify dotenv` and `npm install @openzeppelin/contracts@^5.0.0 alchemy-sdk@^3.0.0`. Verify all packages are correctly listed in package.json with appropriate version constraints. Check that TypeScript types are properly resolved for all installed packages. Ensure no dependency conflicts exist and the project can still compile after installation.
+
+## 3. Configure hardhat.config.ts with networks and compiler settings [done]
+### Dependencies: 1.2
+### Description: Set up the Hardhat configuration file with Polygon Amoy network, Solidity compiler settings, gas reporter, and verification plugins
+### Details:
+Update hardhat.config.ts to include: Solidity compiler version 0.8.20 with optimizer enabled (200 runs), Polygon Amoy network configuration with chainId 80002 and Alchemy RPC endpoint placeholder, Polygonscan verification plugin setup with API key placeholder, gas reporter configuration for cost analysis. Import dotenv at the top of the config file to enable environment variable usage. Add proper TypeScript types for the configuration object. Ensure all network configurations use environment variables for sensitive data.
+
+## 4. Setup environment variables and complete project directory structure [done]
+### Dependencies: 1.3
+### Description: Create .env file with required API keys and private key placeholders, establish all project directories including backend, CLI, and frontend folders
+### Details:
+Create .env file with placeholders: ALCHEMY_API_KEY, DEPLOYER_PRIVATE_KEY, POLYGONSCAN_API_KEY. Add .env to .gitignore to prevent accidental commits. Create .env.example with the same structure but dummy values for documentation. Create additional project directories: backend/, cli/, frontend/ at the root level. Add README.md files in each directory explaining their purpose. Verify that environment variables are properly loaded in hardhat.config.ts using process.env. Test that the configuration correctly reads from .env file.
+

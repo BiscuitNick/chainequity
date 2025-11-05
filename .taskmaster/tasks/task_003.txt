@@ -1,0 +1,53 @@
+# Task ID: 3
+# Title: Backend Services Foundation and Database Setup
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Establish the Node.js/TypeScript backend infrastructure with Express API server, SQLite database, and Alchemy SDK integration
+# Details:
+Setup backend services:
+1. Initialize backend/ directory with TypeScript configuration
+2. Install dependencies: `express`, `better-sqlite3`, `alchemy-sdk`, `typescript`, `@types/*`
+3. Create SQLite database schema (schema.sql):
+   - events table (block_number, transaction_hash, event_type, from_address, to_address, amount, data JSON, timestamp)
+   - balances table (address, balance, last_updated_block, last_updated_timestamp)
+   - corporate_actions table (action_type, block_number, transaction_hash, old_value, new_value, timestamp)
+4. Implement database.ts with connection management and prepared statements
+5. Setup Alchemy SDK configuration (alchemy.config.ts) with WebSocket support
+6. Create Express server.ts with basic routing structure
+7. Implement TypeScript interfaces for all data models
+
+# Test Strategy:
+Test database CRUD operations, verify SQLite schema creation, test Alchemy SDK connection to Polygon Amoy, ensure Express server starts correctly with proper middleware configuration
+
+# Subtasks:
+## 1. Initialize TypeScript backend project with proper configuration [done]
+### Dependencies: None
+### Description: Set up the backend directory structure with TypeScript, Node.js configuration, and install all required dependencies for the Express server and database integration
+### Details:
+Create backend/ directory with proper folder structure (src/, dist/, tests/). Initialize package.json with npm init. Install core dependencies: express, typescript, @types/node, @types/express, ts-node, nodemon for development. Create tsconfig.json with strict mode, ES2020 target, and proper module resolution. Setup .env file structure for configuration variables. Configure build and dev scripts in package.json.
+
+## 2. Design and implement SQLite database schema with all tables [done]
+### Dependencies: 3.1
+### Description: Create the complete database schema including events, balances, and corporate_actions tables with proper indexes and constraints
+### Details:
+Install better-sqlite3 and @types/better-sqlite3. Create schema.sql file with three tables: events table with columns for block_number (INTEGER), transaction_hash (TEXT PRIMARY KEY), event_type (TEXT), from_address (TEXT), to_address (TEXT), amount (TEXT), data (JSON), timestamp (INTEGER). Create balances table with address (TEXT PRIMARY KEY), balance (TEXT), last_updated_block (INTEGER), last_updated_timestamp (INTEGER). Create corporate_actions table with action_type (TEXT), block_number (INTEGER), transaction_hash (TEXT), old_value (TEXT), new_value (TEXT), timestamp (INTEGER). Add appropriate indexes for query performance.
+
+## 3. Create database connection layer with Better-SQLite3 [done]
+### Dependencies: 3.2
+### Description: Implement the database service layer with connection management, prepared statements, and transaction support for all database operations
+### Details:
+Create database.ts file with Database class implementing singleton pattern for connection management. Implement prepared statements for all CRUD operations: insertEvent(), updateBalance(), getBalance(), getEvents(), insertCorporateAction(). Add transaction support with begin(), commit(), rollback() methods. Implement database initialization method that runs schema.sql on first startup. Add connection pooling and error handling with automatic retry logic. Create TypeScript interfaces for all database models (Event, Balance, CorporateAction).
+
+## 4. Setup Express server with middleware and basic routing [done]
+### Dependencies: 3.1
+### Description: Configure Express server with essential middleware, error handling, and establish the basic routing structure for the API endpoints
+### Details:
+Create server.ts with Express application setup. Configure middleware stack: cors for cross-origin requests, helmet for security headers, express.json() for JSON parsing, morgan for request logging. Implement global error handler middleware with proper error response formatting. Setup route structure with separate route files for /api/issuer, /api/corporate, /api/captable endpoints. Configure server to listen on configurable port from environment variables. Add health check endpoint at /health. Implement graceful shutdown handling for SIGTERM/SIGINT signals.
+
+## 5. Configure Alchemy SDK with WebSocket support [done]
+### Dependencies: 3.1
+### Description: Set up Alchemy SDK configuration for Polygon Amoy network with WebSocket connections for real-time event monitoring
+### Details:
+Install alchemy-sdk and ethers dependencies. Create alchemy.config.ts with AlchemySettings configuration for Polygon Amoy network. Configure WebSocket provider for real-time event subscriptions. Set up authentication with Alchemy API key from environment variables. Implement connection management with automatic reconnection logic for WebSocket disconnections. Create helper functions for converting between different unit formats (wei, ether). Setup contract ABI interfaces for the token contract. Implement retry logic with exponential backoff for failed RPC calls.
+

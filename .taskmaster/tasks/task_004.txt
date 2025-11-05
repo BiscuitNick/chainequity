@@ -1,0 +1,59 @@
+# Task ID: 4
+# Title: Implement Issuer Service for Token Management
+# Status: done
+# Dependencies: 2, 3
+# Priority: high
+# Description: Build the core service responsible for wallet approvals, token minting, and executing corporate actions through smart contract interactions
+# Details:
+Create issuer.service.ts with:
+1. Initialize Alchemy SDK client and contract instance with signer
+2. Wallet management methods:
+   - `approveWallet(address)`: Submit approval transaction
+   - `revokeWallet(address)`: Submit revocation transaction
+   - `isWalletApproved(address)`: Query allowlist status
+   - `getApprovedWallets()`: Return all approved addresses
+3. Token operations:
+   - `mintTokens(to, amount)`: Mint with proper unit conversion
+   - Gas estimation for all operations
+4. Corporate actions:
+   - `executeSplit(multiplier)`: Trigger stock split
+   - `updateSymbol(newSymbol)`: Change token symbol
+5. Transaction management:
+   - Wait for confirmations
+   - Return formatted transaction receipts
+   - Error handling with retry logic
+
+# Test Strategy:
+Integration tests for end-to-end wallet approval and minting flow, verify gas estimation accuracy, test transaction failure scenarios and retry mechanisms, validate corporate action execution
+
+# Subtasks:
+## 1. Create IssuerService class with Alchemy SDK initialization [done]
+### Dependencies: None
+### Description: Set up the IssuerService class structure with constructor, Alchemy SDK client initialization, and contract instance binding with proper signer configuration
+### Details:
+Create issuer.service.ts file with IssuerService class. Initialize Alchemy SDK with network configuration for Polygon Amoy. Set up contract instance using ABI and deployed address from config. Configure wallet/signer for transaction signing. Implement constructor to accept configuration parameters and establish connection to blockchain.
+
+## 2. Implement wallet management methods for allowlist control [done]
+### Dependencies: 4.1
+### Description: Build the wallet management functionality including approve, revoke, and query operations for the allowlist system
+### Details:
+Implement approveWallet(address) method to submit approval transaction to smart contract. Create revokeWallet(address) for removing addresses from allowlist. Build isWalletApproved(address) to query current approval status. Implement getApprovedWallets() to retrieve all approved addresses from contract events or state. Add proper type checking and address validation.
+
+## 3. Build token minting functionality with gas estimation [done]
+### Dependencies: 4.1
+### Description: Develop the token minting operations including proper unit conversion, gas estimation, and transaction submission
+### Details:
+Implement mintTokens(to, amount) method with proper decimal conversion based on token decimals. Add gas estimation logic using estimateGas() before transaction submission. Implement dynamic gas price fetching for optimal transaction costs. Handle unit conversion between user input and blockchain representation. Add validation for minting permissions and amount limits.
+
+## 4. Add corporate action methods for splits and symbol changes [done]
+### Dependencies: 4.1
+### Description: Implement methods for executing corporate actions including stock splits and token symbol updates
+### Details:
+Create executeSplit(multiplier) method to trigger stock split transactions with proper validation of multiplier values. Implement updateSymbol(newSymbol) for changing token symbol on-chain. Add validation for symbol format and length restrictions. Include event emission tracking for corporate actions. Implement proper authorization checks to ensure only authorized addresses can execute these actions.
+
+## 5. Implement transaction management with retry logic and error handling [done]
+### Dependencies: 4.2, 4.3, 4.4
+### Description: Build robust transaction management system with confirmation waiting, retry mechanism for failed transactions, and comprehensive error handling
+### Details:
+Implement transaction submission wrapper with configurable confirmation blocks. Add retry logic with exponential backoff for failed transactions. Create formatted transaction receipt return objects with relevant data. Implement comprehensive error handling for common Web3 errors like insufficient gas, network issues, and reverted transactions. Add transaction status monitoring and timeout handling. Include logging for transaction lifecycle events.
+

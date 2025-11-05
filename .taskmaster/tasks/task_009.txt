@@ -1,0 +1,67 @@
+# Task ID: 9
+# Title: REST API Endpoints and Express Routes
+# Status: done
+# Dependencies: 3, 4, 6
+# Priority: medium
+# Description: Implement comprehensive REST API with proper error handling, input validation, and response formatting
+# Details:
+Create Express API routes:
+1. Issuer endpoints (api/routes.ts):
+   - POST /api/issuer/approve
+   - POST /api/issuer/revoke  
+   - GET /api/issuer/status/:address
+   - GET /api/issuer/approved
+   - POST /api/issuer/mint
+2. Corporate actions:
+   - POST /api/corporate/split
+   - POST /api/corporate/symbol
+   - GET /api/corporate/history
+3. Cap-table endpoints:
+   - GET /api/captable
+   - GET /api/captable/:blockNumber
+   - GET /api/captable/export?format=csv|json
+4. Analytics:
+   - GET /api/analytics/holders
+   - GET /api/analytics/supply
+   - GET /api/analytics/distribution
+5. Middleware:
+   - Request validation
+   - Error handling
+   - CORS configuration
+   - Rate limiting
+   - Response formatting
+
+# Test Strategy:
+API integration tests for all endpoints, test error responses and validation, verify CORS and rate limiting, load test critical endpoints
+
+# Subtasks:
+## 1. Implement issuer management endpoints [done]
+### Dependencies: None
+### Description: Create Express routes for wallet approval/revocation and status checking with proper request validation and response formatting
+### Details:
+Implement POST /api/issuer/approve, POST /api/issuer/revoke, GET /api/issuer/status/:address, GET /api/issuer/approved, and POST /api/issuer/mint endpoints. Each endpoint should validate input parameters, call the issuer service methods, handle errors appropriately, and return standardized JSON responses. Include request body validation using express-validator or joi for POST endpoints.
+
+## 2. Create corporate action endpoints [done]
+### Dependencies: 9.1
+### Description: Build REST API routes for corporate actions including stock splits, symbol changes, and history retrieval with proper authorization
+### Details:
+Implement POST /api/corporate/split for executing stock splits, POST /api/corporate/symbol for changing token symbols, and GET /api/corporate/history for retrieving corporate action history. Ensure proper authorization checks, validate split ratios and symbol formats, implement pagination for history endpoint, and return formatted responses with action confirmation details.
+
+## 3. Build cap-table and export endpoints [done]
+### Dependencies: 9.1
+### Description: Develop endpoints for retrieving cap-table data at specific blocks and exporting in multiple formats (CSV/JSON)
+### Details:
+Create GET /api/captable for current cap-table, GET /api/captable/:blockNumber for historical snapshots, and GET /api/captable/export with format query parameter supporting CSV and JSON exports. Implement efficient database queries, handle large datasets with streaming responses, format CSV output with proper headers, and include ownership percentage calculations in responses.
+
+## 4. Add analytics endpoints [done]
+### Dependencies: 9.3
+### Description: Implement analytics API routes for holder statistics, token supply metrics, and distribution analysis
+### Details:
+Build GET /api/analytics/holders for holder count and concentration metrics, GET /api/analytics/supply for total supply and circulating supply data, and GET /api/analytics/distribution for token distribution analysis including whale detection and decentralization metrics. Cache frequently requested analytics data, implement efficient aggregation queries, and return visualizable data formats.
+
+## 5. Setup middleware for validation, error handling, and CORS [done]
+### Dependencies: 9.1, 9.2, 9.3, 9.4
+### Description: Configure Express middleware stack including request validation, centralized error handling, CORS policy, rate limiting, and response formatting
+### Details:
+Implement validation middleware using express-validator for request body/params/query validation, create centralized error handler with proper status codes and error messages, configure CORS for allowed origins, add rate limiting using express-rate-limit to prevent abuse, implement response formatter for consistent API responses, add request logging middleware for debugging, and setup helmet for security headers.
+

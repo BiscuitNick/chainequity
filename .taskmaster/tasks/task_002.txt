@@ -1,0 +1,63 @@
+# Task ID: 2
+# Title: Develop ChainEquityToken Smart Contract
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Implement the core ERC-20 token contract with allowlist-based transfer restrictions, virtual stock splits, and mutable symbol capabilities
+# Details:
+Create ChainEquityToken.sol implementing:
+1. Inherit from OpenZeppelin ERC20 and Ownable
+2. State variables:
+   - `mapping(address => bool) public allowlist`
+   - `uint256 public splitMultiplier = 1`
+   - Mutable `_symbol` and `_name` storage
+3. Core functions:
+   - `approveWallet(address)` and `revokeWallet(address)` for allowlist management
+   - Override `_update()` to enforce allowlist checks on transfers
+   - `mint(address to, uint256 amount)` restricted to owner
+   - `executeSplit(uint256 multiplier)` for virtual stock splits
+   - `updateSymbol(string memory newSymbol)` for symbol changes
+   - Override `balanceOf()` and `totalSupply()` to multiply by splitMultiplier
+4. Events: WalletApproved, WalletRevoked, StockSplit, SymbolChanged, TransferBlocked
+5. Implement proper access control with onlyOwner modifiers
+
+# Test Strategy:
+Write comprehensive unit tests covering: allowlist management, transfer restrictions (both approved/non-approved scenarios), minting functionality, stock split calculations maintaining ownership percentages, symbol changes, edge cases with zero balances and maximum uint256 values
+
+# Subtasks:
+## 1. Set up smart contract structure with OpenZeppelin imports [done]
+### Dependencies: None
+### Description: Create the base ChainEquityToken.sol contract file with proper imports from OpenZeppelin, set up the contract structure inheriting from ERC20 and Ownable, and define all necessary state variables
+### Details:
+Create contracts/ChainEquityToken.sol file. Import ERC20, Ownable from OpenZeppelin v5. Define contract ChainEquityToken inheriting both. Add state variables: mapping(address => bool) public allowlist, uint256 public splitMultiplier = 1, string private _customSymbol, string private _customName. Initialize constructor with name, symbol, and initial owner parameters. Set up basic contract structure with pragma solidity ^0.8.20
+
+## 2. Implement allowlist mechanism with approval and revocation functions [done]
+### Dependencies: 2.1
+### Description: Build the complete allowlist management system including approveWallet and revokeWallet functions with proper access control and event emissions
+### Details:
+Implement approveWallet(address wallet) function with onlyOwner modifier that sets allowlist[wallet] = true and emits WalletApproved event. Implement revokeWallet(address wallet) with onlyOwner that sets allowlist[wallet] = false and emits WalletRevoked event. Add isApproved(address wallet) view function returning allowlist status. Define events: WalletApproved(address indexed wallet), WalletRevoked(address indexed wallet). Add require statements to prevent duplicate approvals/revocations
+
+## 3. Override transfer functions to enforce allowlist restrictions [done]
+### Dependencies: 2.2
+### Description: Override the ERC20 _update function to implement allowlist-based transfer restrictions, ensuring only approved addresses can send or receive tokens
+### Details:
+Override _update(address from, address to, uint256 value) internal function from ERC20. Add logic to check if both from and to addresses are in allowlist (skip check for address(0) for minting/burning). If transfer violates allowlist, emit TransferBlocked event and revert with custom error. Define TransferBlocked event with from, to, amount parameters. Create custom error NotInAllowlist(address account). Ensure minting to non-allowlisted addresses is prevented
+
+## 4. Implement virtual stock split functionality with multiplier logic [done]
+### Dependencies: 2.1
+### Description: Create the stock split mechanism that adjusts token balances virtually through a multiplier without changing actual stored values
+### Details:
+Implement executeSplit(uint256 multiplier) function with onlyOwner modifier. Validate multiplier > 0 and != 1. Update splitMultiplier by multiplying current value with new multiplier. Override balanceOf(address account) to return super.balanceOf(account) * splitMultiplier. Override totalSupply() to return super.totalSupply() * splitMultiplier. Emit StockSplit event with multiplier and new splitMultiplier value. Add getSplitMultiplier() view function. Handle overflow checks using SafeMath or Solidity 0.8+ automatic checks
+
+## 5. Add mutable symbol capability with update functions [done]
+### Dependencies: 2.1
+### Description: Implement the ability to change the token symbol and name after deployment with proper access control and event logging
+### Details:
+Override symbol() and name() functions to return _customSymbol and _customName if set, otherwise return default values. Implement updateSymbol(string memory newSymbol) with onlyOwner modifier, validate newSymbol is not empty, update _customSymbol and emit SymbolChanged event. Implement updateName(string memory newName) similarly for token name. Define SymbolChanged event with oldSymbol and newSymbol parameters. Add getters for current symbol and name. Ensure symbol length validation (typically 3-11 characters)
+
+## 6. Create mint function and comprehensive error handling [done]
+### Dependencies: 2.3, 2.4, 2.5
+### Description: Implement the minting functionality restricted to owner and add comprehensive error handling with custom errors and proper event emissions throughout the contract
+### Details:
+Implement mint(address to, uint256 amount) public onlyOwner function that calls _mint(to, amount). Ensure minting respects allowlist restrictions through _update override. Define all custom errors: InvalidMultiplier(), InvalidSymbol(), ZeroAddress(), ZeroAmount(). Add require statements with descriptive messages throughout all functions. Implement proper natspec documentation for all public/external functions. Add fallback and receive functions if needed. Ensure all state-changing functions emit appropriate events for off-chain indexing
+

@@ -1,0 +1,59 @@
+# Task ID: 12
+# Title: Production Deployment and Demo Execution
+# Status: pending
+# Dependencies: 8, 10
+# Priority: medium
+# Description: Deploy the complete system to Polygon Amoy testnet and execute a comprehensive demonstration of all features
+# Details:
+Final deployment steps:
+1. Deploy ChainEquityToken to Polygon Amoy
+2. Verify contract on Polygonscan
+3. Deploy backend services to cloud (optional):
+   - Dockerize backend services
+   - Setup persistent SQLite storage
+   - Configure environment variables
+4. Run complete demo flow:
+   - Approve 5 test wallets
+   - Mint 10,000 tokens each to 3 wallets
+   - Execute various transfers (success and blocked)
+   - Perform 7-for-1 stock split
+   - Change symbol from CEQ to CEQX
+   - Generate cap-table at each stage
+5. Create demo video/documentation:
+   - Record CLI interactions
+   - Show Polygonscan transactions
+   - Demonstrate cap-table changes
+   - Highlight compliance features
+6. Performance validation:
+   - Verify gas costs meet targets
+   - Test system under load
+   - Validate data consistency
+
+# Test Strategy:
+Complete end-to-end system test on Polygon Amoy, verify all transactions on Polygonscan, validate cap-table accuracy, ensure demo runs without errors
+
+# Subtasks:
+## 1. Deploy and Verify ChainEquityToken Contract on Polygon Amoy [pending]
+### Dependencies: None
+### Description: Deploy the ChainEquityToken smart contract to Polygon Amoy testnet using deployment scripts and verify it on Polygonscan for public transparency
+### Details:
+Execute the deployment script to deploy ChainEquityToken to Polygon Amoy testnet with initial parameters (name: ChainEquity, symbol: CEQ, decimals: 18). Use the Alchemy RPC endpoint configured in hardhat.config.ts. After successful deployment, run the verification script to verify the contract on Polygonscan, ensuring constructor arguments are properly encoded. Store the deployed contract address in .env file and document deployment details including transaction hash, block number, and gas used. Confirm the contract is accessible and verified on Polygonscan explorer.
+
+## 2. Setup and Configure Backend Services Infrastructure [pending]
+### Dependencies: 12.1
+### Description: Prepare backend services for deployment with optional cloud hosting, including Dockerization, database persistence, and environment configuration
+### Details:
+Create Docker configurations for the issuer service, indexer service, and corporate actions service if cloud deployment is desired. Set up Docker Compose file to orchestrate all services with proper networking. Configure persistent SQLite storage with volume mounts to ensure data persistence across container restarts. Set up comprehensive environment variables including Alchemy API keys, contract addresses from deployment, and database paths. For local deployment, ensure all services can run directly with npm scripts. Document both local and containerized deployment options with clear instructions for switching between them.
+
+## 3. Execute Complete Demo Flow with All System Features [pending]
+### Dependencies: 12.2
+### Description: Run a comprehensive demonstration of all ChainEquity features including wallet approvals, token minting, transfers, corporate actions, and compliance blocking
+### Details:
+Execute the full demo scenario step by step: First approve 5 test wallets through the issuer service CLI. Mint 10,000 CEQ tokens each to 3 approved wallets and verify balances. Execute multiple transfer scenarios including successful transfers between approved wallets and blocked transfers to non-approved addresses. Perform a 7-for-1 stock split corporate action and verify all balances are correctly multiplied. Execute symbol change from CEQ to CEQX and confirm update on-chain. Generate cap-table reports at each major step showing ownership distribution. Monitor and log all Polygonscan transactions for documentation. Ensure each operation completes successfully with reasonable gas costs.
+
+## 4. Create Demo Documentation and Validate Performance Metrics [pending]
+### Dependencies: 12.3
+### Description: Document the entire demonstration with recordings, transaction proofs, and performance validation against specified targets
+### Details:
+Create comprehensive demo documentation including video recording of CLI interactions showing the complete flow from deployment through all features. Capture and document all Polygonscan transaction links with screenshots of key transactions. Create a timeline document showing cap-table evolution at each stage with visual representations. Compile gas cost analysis comparing actual costs against target benchmarks for each operation type (deployment, minting, transfers, corporate actions). Run load testing to validate system performance under stress with multiple concurrent operations. Generate a final demo report in markdown format with all metrics, links, and visual assets. Create a quick-start guide for others to reproduce the demo independently.
+

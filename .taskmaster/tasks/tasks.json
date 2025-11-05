@@ -804,11 +804,73 @@
             "testStrategy": "Validate all documentation links work correctly, ensure gas costs are within 10% of targets, verify system handles at least 100 operations per minute, confirm demo can be reproduced from documentation"
           }
         ]
+      },
+      {
+        "id": 13,
+        "title": "Implement Historical 'As-of Block' Snapshot Feature",
+        "description": "Generate on-demand historical cap-table snapshots at any given block number for auditing and compliance purposes",
+        "details": "Implement historical point-in-time snapshot capability:\n1. Backend Service Enhancement:\n   - Extend captable.service.ts to support historical queries\n   - Implement on-demand computation from events table\n   - Calculate balances, ownership percentages at specific block\n   - Include historical events up to specified block\n   - Optimize queries with proper indexing\n2. CLI Command:\n   - Add new 'snapshot <block>' command\n   - Display cap-table state at specified block\n   - Support --format flag for CSV/JSON export\n   - Show ownership percentages and event history\n3. API Endpoint Enhancement:\n   - Extend GET /api/captable?block=<number>\n   - Support query parameter for block number\n   - Return historical snapshot data\n   - Include metadata (block number, timestamp)\n4. Frontend Integration:\n   - Add block number selector to captable page\n   - Support ?block=<number> URL query parameter\n   - Display historical state with visual indicators\n   - Show block timestamp and event count\n5. Data Requirements:\n   - Token holder addresses and balances at block\n   - Ownership percentages at that point in time\n   - Historical events leading to that state\n   - Account for split multipliers correctly",
+        "testStrategy": "Test historical snapshot accuracy against known past states, verify ownership calculations match on-chain data, test with various block numbers including edge cases, validate query performance with large event histories, ensure split multipliers are correctly applied",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          7,
+          9,
+          11
+        ],
+        "status": "pending",
+        "complexity": 5,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Enhance backend captable service with historical query support and event-based reconstruction, 2) Add CLI snapshot command with formatting options, 3) Extend API endpoint to support block query parameter, 4) Integrate block selector in frontend captable page",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Enhance backend captable service with historical query support",
+            "description": "Extend captable.service.ts to support historical cap-table reconstruction at any given block number using event-based balance calculation",
+            "dependencies": [],
+            "details": "Modify captable.service.ts to add historical snapshot capability. Implement getSnapshotAtBlock(blockNumber) method that queries the events table to reconstruct token holder balances at the specified block. Calculate ownership percentages based on total supply at that block. Properly apply split multipliers that were active at the historical block. Retrieve all relevant events (Transfer, StockSplit) up to and including the specified block. Optimize database queries with proper indexes on block_number and address fields. Add caching layer for frequently queried historical blocks. Handle edge cases like querying blocks before contract deployment or before first events.",
+            "status": "pending",
+            "testStrategy": "Test snapshot accuracy by comparing with known historical states from blockchain, verify balance calculations match on-chain data at various blocks, test with blocks before/after stock splits, validate query performance with large event histories, ensure caching works correctly"
+          },
+          {
+            "id": 2,
+            "title": "Implement CLI snapshot command with formatting options",
+            "description": "Create new 'chainequity snapshot <block>' CLI command that displays historical cap-table state with support for multiple output formats",
+            "dependencies": [
+              1
+            ],
+            "details": "Create cli/commands/snapshot.ts with snapshot command implementation. Accept block number as required argument. Add --format flag supporting 'table', 'csv', and 'json' output formats. Display token holder addresses, balances, and ownership percentages at the specified block. Show metadata including block number, block timestamp, and total event count up to that block. Format table output using cli-table3 with proper column alignment. Implement CSV export with headers (Address, Balance, Ownership %, Block Number, Timestamp). Generate JSON output with complete metadata and holder array. Add validation for block number (must be positive integer, not in future). Include error handling for blocks with no data or before token deployment.",
+            "status": "pending",
+            "testStrategy": "Test command with various block numbers and format options, verify output accuracy against backend service, test error handling for invalid blocks, validate CSV and JSON export formats, ensure table formatting is readable"
+          },
+          {
+            "id": 3,
+            "title": "Extend REST API endpoint to support block query parameter",
+            "description": "Modify GET /api/captable endpoint to accept optional ?block=<number> query parameter for retrieving historical cap-table snapshots",
+            "dependencies": [
+              1
+            ],
+            "details": "Update backend/src/routes/captable.ts to handle optional 'block' query parameter. Parse and validate block number from query string. Call getSnapshotAtBlock() when block parameter is provided, otherwise return current state. Include metadata in response: block number, block timestamp, holder count, total supply. Add proper error responses for invalid block numbers (400 Bad Request). Implement response caching for historical snapshots with appropriate cache headers. Add rate limiting for historical queries to prevent abuse. Update API documentation in comments with example requests. Ensure backward compatibility - endpoint works without block parameter as before.",
+            "status": "pending",
+            "testStrategy": "Test endpoint with and without block parameter, verify historical data accuracy, test error handling for invalid blocks, validate response format and metadata, test caching behavior, ensure backward compatibility"
+          },
+          {
+            "id": 4,
+            "title": "Add block selector to frontend captable page",
+            "description": "Integrate block number selector UI component on the captable page with support for ?block=<number> URL query parameter",
+            "dependencies": [
+              3
+            ],
+            "details": "Update frontend/app/captable/page.tsx to add block number input/selector component. Read ?block= query parameter from URL on page load and fetch historical data if present. Add UI input field for users to enter block number with validation (positive integers only). Implement 'View Snapshot' button that updates URL and fetches historical data. Display visual indicator showing whether viewing current or historical state (e.g., banner or badge). Show block metadata: block number, timestamp, and 'Historical Snapshot' label. Add 'Return to Current' button when viewing historical state. Update table to show historical balances and ownership percentages. Preserve existing export functionality (CSV/JSON) for historical snapshots. Ensure URL updates when selecting different blocks for shareable links.",
+            "status": "pending",
+            "testStrategy": "Test block selector input validation, verify URL query parameter handling on page load, test historical data fetching and display, validate visual indicators for historical vs current state, ensure export works for historical snapshots, test browser back/forward navigation"
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-11-04T02:07:35.583Z",
-      "updated": "2025-11-04T22:33:29.481Z",
+      "updated": "2025-11-05T00:00:00.000Z",
       "description": "Tasks for master context"
     }
   }

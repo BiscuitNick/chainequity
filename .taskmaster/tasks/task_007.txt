@@ -1,0 +1,62 @@
+# Task ID: 7
+# Title: Develop CLI Tool for Operator Interactions
+# Status: done
+# Dependencies: 4, 6
+# Priority: medium
+# Description: Create a comprehensive command-line interface for all token management operations with colored output and user-friendly formatting
+# Details:
+Implement CLI with Commander.js:
+1. Project structure:
+   - cli/index.ts: Main entry point with command registration
+   - cli/commands/: Individual command files
+   - cli/utils/: Formatting and validation helpers
+2. Commands to implement:
+   - Wallet: `approve`, `revoke`, `status`, `list-approved`
+   - Token: `mint`, `transfer`, `balance`
+   - Corporate: `split`, `symbol`
+   - Cap-table: `captable` with --block and --format options
+   - Utilities: `deploy`, `verify`, `demo`
+3. Features:
+   - Colored output with chalk
+   - Table formatting with cli-table3
+   - Input validation and error handling
+   - Progress indicators for long operations
+   - Transaction confirmation prompts
+4. Configuration:
+   - Read from .env for network settings
+   - Support multiple networks (local, amoy)
+
+# Test Strategy:
+Test each command with valid and invalid inputs, verify transaction submission and confirmation, test output formatting and error messages, validate CSV/JSON exports from CLI
+
+# Subtasks:
+## 1. Setup Commander.js project structure with TypeScript configuration [done]
+### Dependencies: None
+### Description: Initialize the CLI project structure with Commander.js framework, TypeScript setup, and establish the command registration architecture
+### Details:
+Create cli/ directory with index.ts as main entry point. Setup TypeScript configuration for CLI module. Install Commander.js, chalk for colored output, cli-table3 for formatted tables, and inquirer for prompts. Implement base command structure with program.name('chainequity').version('1.0.0').description(). Create commands/ and utils/ subdirectories. Setup command registration pattern that dynamically loads all command files from commands/ directory. Configure tsconfig.json for CLI with proper module resolution.
+
+## 2. Implement wallet management commands with allowlist operations [done]
+### Dependencies: 7.1
+### Description: Create wallet-related commands for managing approved addresses including approve, revoke, status checking, and listing all approved wallets
+### Details:
+Implement cli/commands/wallet.ts with four subcommands. Create 'approve <address>' command that calls contract.approveWallet() with validation for valid Ethereum addresses. Build 'revoke <address>' command for removing wallet approval. Add 'status <address>' to check if specific address is approved. Implement 'list-approved' to fetch and display all approved addresses in a formatted table. Add transaction confirmation prompts before executing approve/revoke. Include proper error handling for invalid addresses and failed transactions. Use chalk for success (green) and error (red) messages.
+
+## 3. Create token operation commands for minting and transfers [done]
+### Dependencies: 7.1
+### Description: Build commands for core token operations including minting new tokens, transferring between addresses, and checking balances
+### Details:
+Create cli/commands/token.ts with mint, transfer, and balance subcommands. Implement 'mint <to> <amount>' with owner-only validation and amount parsing (supporting decimal notation). Build 'transfer <to> <amount>' with allowlist checking before submission. Add 'balance <address>' to query and display token balance with proper formatting (commas for thousands). Include --wei flag for raw values without decimals conversion. Add progress indicators using ora spinner for transaction mining. Implement proper error messages for insufficient balance, unauthorized minting attempts, and non-allowlisted transfers.
+
+## 4. Add corporate action commands for splits and symbol changes [done]
+### Dependencies: 7.1
+### Description: Implement corporate action commands to handle stock splits and symbol changes with proper formatting and user confirmation
+### Details:
+Create cli/commands/corporate.ts with split and symbol subcommands. Implement 'split <multiplier>' command that executes stock split with validation for positive integers. Add confirmation prompt showing impact (e.g., '1 token will become X tokens'). Build 'symbol <new-symbol>' command with validation for valid token symbols (3-5 uppercase characters). Add 'captable' command with --block flag for historical queries and --format option (table/csv/json). Implement CSV and JSON export functionality using fs.writeFileSync. Format cap-table with ownership percentages and proper number formatting. Include total supply and holder count in output.
+
+## 5. Build utility commands with configuration and demo mode [done]
+### Dependencies: 7.2, 7.3, 7.4
+### Description: Create utility commands for contract deployment, verification, configuration management, and a comprehensive demo mode showcasing all features
+### Details:
+Implement cli/commands/utils.ts with deploy, verify, and demo commands. Create 'deploy' command that deploys new contract instance with initial parameters. Build 'verify <address>' to verify contract on Polygonscan using hardhat-verify. Add 'demo' command that runs through all CLI features in sequence with sample data. Create cli/utils/config.ts to read .env file for RPC URLs and private keys. Support --network flag (local/amoy/polygon) for all commands. Implement cli/utils/formatter.ts with formatAddress(), formatAmount(), and formatTable() helpers. Add comprehensive error handling with detailed messages and recovery suggestions.
+

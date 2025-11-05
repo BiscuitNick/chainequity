@@ -1,0 +1,62 @@
+# Task ID: 11
+# Title: Next.js Frontend Dashboard (Optional)
+# Status: done
+# Dependencies: 9
+# Priority: low
+# Description: Build a web-based operator dashboard with shadcn/ui components for visual token management and cap-table viewing
+# Details:
+Create Next.js 15 frontend:
+1. Setup Next.js with TypeScript and Tailwind CSS
+2. Install shadcn/ui components and Alchemy SDK
+3. Pages to implement:
+   - Home: Dashboard with stats and recent activity
+   - /approve: Wallet approval management UI
+   - /mint: Token minting interface
+   - /captable: Interactive cap-table viewer
+   - /corporate: Corporate actions interface
+4. Components:
+   - WalletConnect.tsx: Web3 wallet integration
+   - ApprovalForm.tsx: Approve/revoke interface
+   - MintForm.tsx: Token minting with validation
+   - CapTableView.tsx: Sortable/filterable table
+   - CorporateActions.tsx: Split and symbol change forms
+5. Features:
+   - Real-time updates via WebSocket
+   - Transaction status tracking
+   - Export functionality
+   - Responsive design
+
+# Test Strategy:
+Test wallet connection flow, verify form validations, test real-time updates, ensure mobile responsiveness, validate data accuracy against backend
+
+# Subtasks:
+## 1. Setup Next.js 15 with TypeScript and Tailwind CSS [done]
+### Dependencies: None
+### Description: Initialize Next.js 15 project with TypeScript support, configure Tailwind CSS with custom theme, and set up project structure with proper linting and formatting
+### Details:
+Create new Next.js 15 app with TypeScript template, install and configure Tailwind CSS with custom color scheme for financial dashboard, set up ESLint and Prettier configurations, create folder structure for pages, components, hooks, and utils, configure next.config.js for Web3 compatibility
+
+## 2. Implement wallet connection and Web3 integration [done]
+### Dependencies: 11.1
+### Description: Set up Web3 wallet connectivity using WalletConnect and ethers.js, integrate with Alchemy SDK for blockchain interactions, and create reusable Web3 hooks
+### Details:
+Install and configure WalletConnect v2, ethers.js, and Alchemy SDK dependencies, create WalletConnect.tsx component with MetaMask/WalletConnect support, implement custom hooks (useWallet, useContract, useBalance), set up Web3Provider context for app-wide wallet state, configure network switching between mainnet and testnets
+
+## 3. Create core pages (dashboard, approval, minting, cap-table) [done]
+### Dependencies: 11.1, 11.2
+### Description: Build the main application pages including home dashboard with statistics, approval management UI, token minting interface, and interactive cap-table viewer with sorting and filtering
+### Details:
+Implement Home page with stats cards showing total supply, holder count, recent activity feed, create /approve page with wallet approval/revocation interface and approved wallets list, build /mint page with form validation and transaction status tracking, develop /captable page with sortable/filterable table using tanstack-table, implement /corporate page for split and symbol change operations
+
+## 4. Build reusable components with shadcn/ui [done]
+### Dependencies: 11.1, 11.2
+### Description: Create modular, reusable components using shadcn/ui design system for forms, tables, cards, and corporate action interfaces with proper TypeScript typing
+### Details:
+Install shadcn/ui components (Button, Card, Table, Form, Input, Dialog, Toast), create ApprovalForm.tsx with address validation and transaction feedback, build MintForm.tsx with amount input and recipient selection, implement CapTableView.tsx with export functionality (CSV/JSON), develop CorporateActions.tsx with split ratio and symbol change forms, add TransactionStatus component for tracking pending/confirmed transactions
+
+## 5. Add real-time updates via WebSocket [done]
+### Dependencies: 11.3, 11.4
+### Description: Implement WebSocket connections for real-time blockchain event updates, transaction status tracking, and automatic UI refreshes when cap-table or balances change
+### Details:
+Set up WebSocket connection to backend indexer service for live events, implement real-time transaction status updates with progress indicators, create event listeners for Transfer, Approval, Split, and SymbolChange events, add automatic data refetching when relevant events occur, implement connection retry logic and error handling, add notification system using toast components for important updates
+
