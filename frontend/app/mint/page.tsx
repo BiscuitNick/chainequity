@@ -57,6 +57,17 @@ export default function MintPage() {
       const displayedAmountWei = parseUnits(amount, decimals);
       const actualAmountWei = (displayedAmountWei * BigInt(BASIS_POINTS)) / splitMultiplier;
 
+      // Debug logging
+      console.log('Mint Debug:', {
+        recipient,
+        amount,
+        decimals,
+        splitMultiplier: splitMultiplier.toString(),
+        displayedAmountWei: displayedAmountWei.toString(),
+        actualAmountWei: actualAmountWei.toString(),
+        contractAddress,
+      });
+
       // Additional safety check
       if (actualAmountWei === 0n) {
         setError('Calculated amount is too small');
