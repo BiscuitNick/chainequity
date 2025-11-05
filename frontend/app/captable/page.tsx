@@ -10,10 +10,12 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useTokenInfo } from '@/hooks/useTokenInfo';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Download, ChevronDown, ChevronRight, Copy } from 'lucide-react';
+import { Download, ChevronDown, ChevronRight, Copy, History, X } from 'lucide-react';
 import { formatUnits } from 'viem';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -44,6 +46,9 @@ interface HolderDetail {
 export default function CapTablePage() {
   const { isConnected } = useAccount();
   const { symbol, decimals, splitMultiplier } = useTokenInfo();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [capTable, setCapTable] = useState<CapTableHolder[]>([]);
   const [totalHolders, setTotalHolders] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -52,6 +57,21 @@ export default function CapTablePage() {
   const [holderDetails, setHolderDetails] = useState<Map<string, HolderDetail>>(new Map());
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
+  // Block selector state
+  const [blockNumber, setBlockNumber] = useState<string>('');
+  const [blockInput, setBlockInput] = useState<string>('');
+  const [isHistorical, setIsHistorical] = useState(false);
+
+  // Read block number from URL query parameter on mount
+  useEffect(() => {
+    const blockParam = searchParams.get('block');
+    if (blockParam) {
+      setBlockNumber(blockParam);
+      setBlockInput(blockParam);
+      setIsHistorical(true);
+    }
+  }, [searchParams]);
+
   // Fetch cap table data
   useEffect(() => {
     if (!isConnected) return;
@@ -59,13 +79,20 @@ export default function CapTablePage() {
     const fetchCapTable = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/api/captable`);
+
+        // Build URL with optional block parameter
+        const url = blockNumber
+          ? `${API_URL}/api/captable?block=${blockNumber}`
+          : `${API_URL}/api/captable`;
+
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to fetch cap table');
         }
         const data = await response.json();
         setCapTable(data.holders || []);
         setTotalHolders(data.holderCount || 0);
+        setIsHistorical(data.isHistorical || false);
         setError('');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch cap table');
@@ -75,7 +102,7 @@ export default function CapTablePage() {
     };
 
     fetchCapTable();
-  }, [isConnected]);
+  }, [isConnected, blockNumber]);
 
   // Fetch holder details when row is expanded
   const fetchHolderDetails = async (address: string) => {
@@ -106,22 +133,48 @@ export default function CapTablePage() {
     setExpandedRows(newExpanded);
   };
 
+  // Handle block number submission
+  const handleViewSnapshot = () => {
+    const block = blockInput.trim();
+    if (!block || isNaN(Number(block)) || Number(block) < 0) {
+      setError('Please enter a valid block number');
+      return;
+    }
+    setBlockNumber(block);
+    router.push(`/captable?block=${block}`);
+  };
+
+  // Handle viewing current state
+  const handleViewCurrent = () => {
+    setBlockNumber('');
+    setBlockInput('');
+    setIsHistorical(false);
+    router.push('/captable');
+  };
+
   // Export to CSV
   const handleExportCSV = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/captable/export?format=csv`);
+      const url = blockNumber
+        ? `${API_URL}/api/captable/export?format=csv&block=${blockNumber}`
+        : `${API_URL}/api/captable/export?format=csv`;
+
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to export cap table');
       }
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `captable-${Date.now()}.csv`;
+      a.href = downloadUrl;
+      const filename = blockNumber
+        ? `captable-block-${blockNumber}-${Date.now()}.csv`
+        : `captable-${Date.now()}.csv`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export cap table');
     }
@@ -177,6 +230,65 @@ export default function CapTablePage() {
             Export CSV
           </Button>
         </div>
+
+        {/* Block Selector */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Historical Snapshot
+            </CardTitle>
+            <CardDescription>
+              View cap-table state at any block number
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="Enter block number..."
+                value={blockInput}
+                onChange={(e) => setBlockInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleViewSnapshot();
+                  }
+                }}
+                className="max-w-xs"
+                disabled={loading}
+              />
+              <Button onClick={handleViewSnapshot} disabled={loading || !blockInput}>
+                View Snapshot
+              </Button>
+              {isHistorical && (
+                <Button onClick={handleViewCurrent} variant="outline" disabled={loading}>
+                  <X className="h-4 w-4 mr-2" />
+                  View Current
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Historical State Indicator */}
+        {isHistorical && blockNumber && (
+          <Alert className="mb-6 border-blue-500 bg-blue-50 dark:bg-blue-950">
+            <History className="h-4 w-4" />
+            <AlertDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <strong>Viewing Historical Snapshot</strong>
+                  <p className="text-sm mt-1">
+                    Showing cap-table state at block <span className="font-mono">{blockNumber}</span>
+                  </p>
+                </div>
+                <Button size="sm" variant="ghost" onClick={handleViewCurrent}>
+                  Return to Current State
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="mb-6 grid gap-4 md:grid-cols-3">
           <Card>

@@ -490,6 +490,101 @@ program
   });
 
 // ============================================================================
+// SNAPSHOT COMMAND
+// ============================================================================
+
+program
+  .command('snapshot <block>')
+  .description('Generate historical cap-table snapshot at specific block')
+  .option('-f, --format <format>', 'Output format (table|csv|json)', 'table')
+  .option('-o, --output <file>', 'Output file (for csv/json)')
+  .action(async (block: string, options) => {
+    const blockNumber = parseInt(block);
+
+    if (isNaN(blockNumber) || blockNumber < 0) {
+      console.error(chalk.red('Error: Block number must be a positive integer'));
+      process.exit(1);
+    }
+
+    const spinner = ora(`Generating snapshot at block ${blockNumber}...`).start();
+
+    try {
+      const capTableService = new CapTableService();
+      const snapshot = capTableService.getSnapshotAtBlock(blockNumber);
+
+      spinner.stop();
+
+      if (options.format === 'csv') {
+        const csv = capTableService.exportToCSV(snapshot);
+        if (options.output) {
+          fs.writeFileSync(options.output, csv);
+          console.log(chalk.green('✓'), `Snapshot exported to ${options.output}`);
+        } else {
+          console.log(csv);
+        }
+      } else if (options.format === 'json') {
+        const json = capTableService.exportToJSON(snapshot);
+        if (options.output) {
+          fs.writeFileSync(options.output, json);
+          console.log(chalk.green('✓'), `Snapshot exported to ${options.output}`);
+        } else {
+          console.log(json);
+        }
+      } else {
+        // Table format
+        console.log(chalk.bold(`\nHistorical Snapshot at Block ${blockNumber}\n`));
+        console.log(chalk.gray('Block Number:'), chalk.cyan(blockNumber));
+        console.log(chalk.gray('Total Supply:'), chalk.green(snapshot.totalSupplyFormatted));
+        console.log(chalk.gray('Holders:'), snapshot.holderCount);
+        console.log(chalk.gray('Split Multiplier:'), snapshot.splitMultiplier + 'x');
+        console.log(
+          chalk.gray('Generated At:'),
+          new Date(snapshot.generatedAt).toLocaleString()
+        );
+
+        if (snapshot.entries.length === 0) {
+          console.log(chalk.yellow('\n⚠️  No holders found at this block'));
+          console.log(chalk.gray('   This may be before any tokens were minted'));
+          return;
+        }
+
+        console.log('');
+
+        const table = new Table({
+          head: [
+            chalk.cyan('#'),
+            chalk.cyan('Address'),
+            chalk.cyan('Balance'),
+            chalk.cyan('Ownership %'),
+          ],
+        });
+
+        snapshot.entries.forEach((entry, index) => {
+          table.push([
+            index + 1,
+            entry.address.substring(0, 42),
+            entry.balanceFormatted,
+            entry.ownershipPercentage.toFixed(2) + '%',
+          ]);
+        });
+
+        console.log(table.toString());
+
+        console.log(chalk.gray('\n💡 Tips:'));
+        console.log(chalk.gray('  Export to CSV: npm run cli snapshot', blockNumber, '--format csv'));
+        console.log(
+          chalk.gray('  Save to file: npm run cli snapshot', blockNumber, '--format json -o snapshot.json')
+        );
+        console.log(chalk.gray('  View current state: npm run cli captable'));
+      }
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to generate snapshot'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
 // EVENTS COMMANDS
 // ============================================================================
 

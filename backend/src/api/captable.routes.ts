@@ -17,12 +17,29 @@ export function createCaptableRouter(db?: ReturnType<typeof getDatabase>) {
 
   /**
    * GET /api/captable
-   * Get current cap-table
+   * Get current cap-table or historical snapshot at specific block
+   * Query params:
+   *   - block: (optional) Block number for historical snapshot
+   *   - limit: (optional) Limit number of holders returned
    */
   router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { limit } = req.query;
-      const capTable = capTableService.generateCapTable();
+      const { limit, block } = req.query;
+
+      // Parse and validate block number if provided
+      let blockNumber: number | undefined;
+      if (block) {
+        blockNumber = parseInt(block as string);
+        if (isNaN(blockNumber) || blockNumber < 0) {
+          return res.status(400).json({
+            error: 'Bad Request',
+            message: 'block must be a non-negative integer',
+          });
+        }
+      }
+
+      // Generate cap-table (current or historical)
+      const capTable = capTableService.generateCapTable(blockNumber);
 
       // Apply limit if provided
       let holders = capTable.entries;
@@ -42,17 +59,19 @@ export function createCaptableRouter(db?: ReturnType<typeof getDatabase>) {
         splitMultiplier: capTable.splitMultiplier,
         generatedAt: capTable.generatedAt,
         blockNumber: capTable.blockNumber,
+        isHistorical: blockNumber !== undefined,
         holders: holders,
       });
+      return;
     } catch (error: any) {
       next(error);
+      return;
     }
   });
 
   /**
    * GET /api/captable/block/:blockNumber
-   * Get cap-table at a specific block number
-   * Note: Current implementation doesn't support historical queries yet
+   * Get cap-table at a specific block number (historical snapshot)
    */
   router.get('/block/:blockNumber', async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -60,58 +79,93 @@ export function createCaptableRouter(db?: ReturnType<typeof getDatabase>) {
 
       const blockNum = parseInt(blockNumber);
       if (isNaN(blockNum) || blockNum < 0) {
-        res.status(400).json({
+        return res.status(400).json({
           error: 'Bad Request',
           message: 'blockNumber must be a non-negative integer',
         });
       }
 
-      // For now, historical queries return current state with block number
-      // TODO: Implement true historical state reconstruction
+      // Generate historical snapshot
       const capTable = capTableService.generateCapTable(blockNum);
 
+      // Format response to match standard captable response
       res.status(200).json({
-        success: true,
-        data: capTable,
-        warning: 'Historical block queries are not fully implemented. Returning current state.',
+        totalSupply: capTable.totalSupply,
+        totalSupplyFormatted: capTable.totalSupplyFormatted,
+        holderCount: capTable.holderCount,
+        splitMultiplier: capTable.splitMultiplier,
+        generatedAt: capTable.generatedAt,
+        blockNumber: capTable.blockNumber,
+        isHistorical: true,
+        holders: capTable.entries,
       });
+      return;
     } catch (error: any) {
       next(error);
+      return;
     }
   });
 
   /**
    * GET /api/captable/export
    * Export cap-table in CSV or JSON format
+   * Query params:
+   *   - format: (optional) Export format, either 'csv' or 'json' (default: 'json')
+   *   - block: (optional) Block number for historical snapshot export
    */
   router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { format = 'json' } = req.query;
+      const { format = 'json', block } = req.query;
 
       if (format !== 'csv' && format !== 'json') {
-        res.status(400).json({
+        return res.status(400).json({
           error: 'Bad Request',
           message: 'format must be either "csv" or "json"',
         });
       }
 
-      const capTable = capTableService.generateCapTable();
+      // Parse and validate block number if provided
+      let blockNumber: number | undefined;
+      if (block) {
+        blockNumber = parseInt(block as string);
+        if (isNaN(blockNumber) || blockNumber < 0) {
+          return res.status(400).json({
+            error: 'Bad Request',
+            message: 'block must be a non-negative integer',
+          });
+        }
+      }
+
+      // Generate cap-table (current or historical)
+      const capTable = capTableService.generateCapTable(blockNumber);
+
+      // Create filename with block number if historical
+      const blockSuffix = blockNumber !== undefined ? `-block-${blockNumber}` : '';
+      const timestamp = Date.now();
 
       if (format === 'csv') {
         const csv = capTableService.exportToCSV(capTable);
 
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="captable-${Date.now()}.csv"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="captable${blockSuffix}-${timestamp}.csv"`
+        );
         res.status(200).send(csv);
       } else {
         const json = capTableService.exportToJSON(capTable);
 
         res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', `attachment; filename="captable-${Date.now()}.json"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="captable${blockSuffix}-${timestamp}.json"`
+        );
         res.status(200).send(json);
       }
+      return;
     } catch (error: any) {
       next(error);
+      return;
     }
   });
 
@@ -151,7 +205,7 @@ export function createCaptableRouter(db?: ReturnType<typeof getDatabase>) {
       const { address } = req.params;
 
       if (!address) {
-        res.status(400).json({
+        return res.status(400).json({
           error: 'Bad Request',
           message: 'Address parameter is required',
         });
@@ -163,7 +217,7 @@ export function createCaptableRouter(db?: ReturnType<typeof getDatabase>) {
       );
 
       if (!holder) {
-        res.status(404).json({
+        return res.status(404).json({
           error: 'Not Found',
           message: 'Holder not found in cap-table',
           data: {
@@ -185,8 +239,10 @@ export function createCaptableRouter(db?: ReturnType<typeof getDatabase>) {
           historyCount: balanceChanges.length,
         },
       });
+      return;
     } catch (error: any) {
       next(error);
+      return;
     }
   });
 

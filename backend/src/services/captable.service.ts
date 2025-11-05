@@ -63,6 +63,11 @@ export class CapTableService {
    * @returns Cap-table with all holders and ownership data
    */
   generateCapTable(blockNumber?: number): CapTable {
+    // If block number specified, use historical snapshot
+    if (blockNumber !== undefined) {
+      return this.getSnapshotAtBlock(blockNumber);
+    }
+
     console.log('\n📊 Generating Cap-Table...');
 
     // Get all balances
@@ -119,6 +124,135 @@ export class CapTableService {
     });
 
     console.log('✅ Cap-table generated\n');
+
+    return {
+      entries,
+      totalSupply: totalSupply.toString(),
+      totalSupplyFormatted: ethers.formatEther(totalSupply),
+      holderCount: entries.length,
+      splitMultiplier,
+      generatedAt: Date.now(),
+      blockNumber,
+    };
+  }
+
+  /**
+   * Get historical cap-table snapshot at a specific block
+   *
+   * @param blockNumber - Block number to query
+   * @returns Historical cap-table at that block
+   */
+  getSnapshotAtBlock(blockNumber: number): CapTable {
+    console.log(`\n📊 Generating Historical Cap-Table at block ${blockNumber}...`);
+
+    // Get all Transfer events up to and including the specified block
+    const allEvents = this.db.getEventsByBlockRange(0, blockNumber);
+
+    // Filter for Transfer events only
+    const transferEvents = allEvents.filter((event) => event.event_type === 'Transfer');
+
+    if (transferEvents.length === 0) {
+      console.log('⚠️  No transfer events found at this block');
+      return {
+        entries: [],
+        totalSupply: '0',
+        totalSupplyFormatted: '0',
+        holderCount: 0,
+        splitMultiplier: 1,
+        generatedAt: Date.now(),
+        blockNumber,
+      };
+    }
+
+    // Reconstruct balances from events
+    const balanceMap = new Map<string, bigint>();
+
+    for (const event of transferEvents) {
+      const from = event.from_address?.toLowerCase();
+      const to = event.to_address?.toLowerCase();
+      const amount = BigInt(event.amount || '0');
+
+      // Handle minting (from = null/zero address)
+      if (!from || from === '0x0000000000000000000000000000000000000000' || from === ethers.ZeroAddress) {
+        // Mint to recipient
+        if (to) {
+          const currentBalance = balanceMap.get(to) || BigInt(0);
+          balanceMap.set(to, currentBalance + amount);
+        }
+      }
+      // Handle burning (to = null/zero address)
+      else if (!to || to === '0x0000000000000000000000000000000000000000' || to === ethers.ZeroAddress) {
+        // Burn from sender
+        const currentBalance = balanceMap.get(from) || BigInt(0);
+        balanceMap.set(from, currentBalance - amount);
+      }
+      // Handle regular transfer
+      else {
+        // Subtract from sender
+        const fromBalance = balanceMap.get(from) || BigInt(0);
+        balanceMap.set(from, fromBalance - amount);
+
+        // Add to recipient
+        const toBalance = balanceMap.get(to) || BigInt(0);
+        balanceMap.set(to, toBalance + amount);
+      }
+    }
+
+    // Get split multiplier active at this block
+    const splitEvents = allEvents.filter(
+      (event) => event.event_type === 'StockSplit' && event.block_number <= blockNumber
+    );
+
+    let splitMultiplier = 1;
+    if (splitEvents.length > 0) {
+      // Get the most recent split event
+      const latestSplit = splitEvents[splitEvents.length - 1];
+      if (latestSplit.data) {
+        try {
+          const splitData = JSON.parse(latestSplit.data);
+          splitMultiplier = parseFloat(splitData.newSplitMultiplier || '1');
+        } catch (error) {
+          console.warn('Failed to parse split data:', error);
+        }
+      }
+    }
+
+    // Filter out zero balances and convert to entries
+    const entries: CapTableEntry[] = [];
+    let totalSupply = BigInt(0);
+
+    for (const [address, balance] of balanceMap) {
+      if (balance > 0) {
+        totalSupply += balance;
+        entries.push({
+          address,
+          balance: balance.toString(),
+          balanceFormatted: ethers.formatEther(balance),
+          ownershipPercentage: 0, // Will be calculated after we have total supply
+          lastUpdated: undefined,
+        });
+      }
+    }
+
+    // Calculate ownership percentages
+    for (const entry of entries) {
+      const balanceBigInt = BigInt(entry.balance);
+      entry.ownershipPercentage =
+        totalSupply > 0 ? (Number(balanceBigInt) / Number(totalSupply)) * 100 : 0;
+    }
+
+    // Sort by balance descending
+    entries.sort((a, b) => {
+      const balanceA = BigInt(a.balance);
+      const balanceB = BigInt(b.balance);
+      return balanceA > balanceB ? -1 : balanceA < balanceB ? 1 : 0;
+    });
+
+    console.log(`   Total Supply: ${ethers.formatEther(totalSupply)} tokens`);
+    console.log(`   Split Multiplier: ${splitMultiplier}x`);
+    console.log(`   Holders: ${entries.length}`);
+    console.log(`   Events Processed: ${transferEvents.length}`);
+    console.log('✅ Historical cap-table generated\n');
 
     return {
       entries,

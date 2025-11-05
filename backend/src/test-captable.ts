@@ -153,6 +153,54 @@ async function main() {
     }
   }
 
+  // Test 9: Historical Snapshot
+  console.log('\n' + '='.repeat(60));
+  console.log('Test 9: Historical Snapshot at Specific Block');
+  console.log('='.repeat(60));
+
+  // Get some events to find a valid block number
+  const allEvents = db.getAllEvents(10, 0);
+  if (allEvents.length > 0) {
+    // Get the block number from the middle of available events
+    const middleBlock = allEvents[Math.floor(allEvents.length / 2)].block_number;
+    console.log(`\n   Testing snapshot at block ${middleBlock}...`);
+
+    const historicalCapTable = capTableService.getSnapshotAtBlock(middleBlock);
+
+    console.log('\n📋 Historical Cap-Table Summary:');
+    console.log('   Block Number:', historicalCapTable.blockNumber);
+    console.log('   Total Supply:', historicalCapTable.totalSupplyFormatted);
+    console.log('   Holder Count:', historicalCapTable.holderCount);
+    console.log('   Split Multiplier:', historicalCapTable.splitMultiplier + 'x');
+
+    if (historicalCapTable.entries.length > 0) {
+      console.log('\n👥 Top 3 Holders at that block:');
+      historicalCapTable.entries.slice(0, 3).forEach((entry, index) => {
+        console.log(
+          `   ${index + 1}. ${entry.address.substring(0, 10)}... - ${entry.balanceFormatted} (${entry.ownershipPercentage.toFixed(2)}%)`
+        );
+      });
+
+      // Compare with current state
+      console.log('\n📊 Comparison with Current State:');
+      console.log(`   Historical Supply: ${historicalCapTable.totalSupplyFormatted}`);
+      console.log(`   Current Supply: ${capTable.totalSupplyFormatted}`);
+      console.log(`   Historical Holders: ${historicalCapTable.holderCount}`);
+      console.log(`   Current Holders: ${capTable.holderCount}`);
+    } else {
+      console.log('\n   No holders found at that block');
+    }
+
+    // Test with earliest block
+    const earliestBlock = allEvents[allEvents.length - 1].block_number;
+    console.log(`\n   Testing snapshot at earliest block ${earliestBlock}...`);
+    const earliestCapTable = capTableService.getSnapshotAtBlock(earliestBlock);
+    console.log(`   Holders at earliest block: ${earliestCapTable.holderCount}`);
+    console.log(`   Supply at earliest block: ${earliestCapTable.totalSupplyFormatted}`);
+  } else {
+    console.log('\n   ⚠️  No events found - skipping historical snapshot test');
+  }
+
   // Summary
   console.log('\n' + '='.repeat(60));
   console.log('✅ All Tests Passed!');
@@ -167,6 +215,7 @@ async function main() {
   console.log('   ✅ CSV export');
   console.log('   ✅ JSON export');
   console.log('   ✅ Balance change tracking');
+  console.log('   ✅ Historical snapshot at specific block');
 
   console.log('\n📁 Files Generated:');
   console.log(`   ${csvPath}`);

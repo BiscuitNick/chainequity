@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Initialize Hardhat Project and Configure Blockchain Infrastructure",
         "description": "Set up the base Hardhat development environment with Polygon Amoy testnet configuration, Alchemy integration, and project dependencies",
         "details": "Create a new Hardhat TypeScript project with the following configuration:\n1. Initialize project: `npx hardhat init` (TypeScript project)\n2. Install core dependencies: `@openzeppelin/contracts@^5.0.0`, `@nomicfoundation/hardhat-toolbox`, `@nomicfoundation/hardhat-verify`, `alchemy-sdk@^3.0.0`, `dotenv`\n3. Configure hardhat.config.ts with:\n   - Solidity 0.8.20 with optimizer (200 runs)\n   - Polygon Amoy network (chainId: 80002)\n   - Alchemy RPC endpoint configuration\n   - Polygonscan verification setup\n   - Gas reporter configuration\n4. Setup .env file with placeholders for ALCHEMY_API_KEY, DEPLOYER_PRIVATE_KEY, POLYGONSCAN_API_KEY\n5. Create project structure directories: contracts/, scripts/, test/, backend/, cli/, frontend/",
@@ -18,7 +18,8 @@
             "dependencies": [],
             "details": "Execute `npx hardhat init` and select TypeScript project option. Verify that the project initializes with the standard Hardhat folder structure including contracts/, scripts/, test/ directories. Ensure the basic TypeScript configuration files (tsconfig.json, hardhat.config.ts) are created correctly. Test that the sample contract compiles successfully with `npx hardhat compile` to validate the initial setup.",
             "status": "done",
-            "testStrategy": "Run `npx hardhat compile` to verify successful compilation, check that all expected directories and configuration files are present, ensure TypeScript is properly configured"
+            "testStrategy": "Run `npx hardhat compile` to verify successful compilation, check that all expected directories and configuration files are present, ensure TypeScript is properly configured",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -29,7 +30,8 @@
             ],
             "details": "Install the following packages with exact versions: `npm install --save-dev @nomicfoundation/hardhat-toolbox @nomicfoundation/hardhat-verify dotenv` and `npm install @openzeppelin/contracts@^5.0.0 alchemy-sdk@^3.0.0`. Verify all packages are correctly listed in package.json with appropriate version constraints. Check that TypeScript types are properly resolved for all installed packages. Ensure no dependency conflicts exist and the project can still compile after installation.",
             "status": "done",
-            "testStrategy": "Verify all packages are in package.json, run `npm list` to check for dependency conflicts, compile a sample contract importing OpenZeppelin to test integration"
+            "testStrategy": "Verify all packages are in package.json, run `npm list` to check for dependency conflicts, compile a sample contract importing OpenZeppelin to test integration",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -40,7 +42,8 @@
             ],
             "details": "Update hardhat.config.ts to include: Solidity compiler version 0.8.20 with optimizer enabled (200 runs), Polygon Amoy network configuration with chainId 80002 and Alchemy RPC endpoint placeholder, Polygonscan verification plugin setup with API key placeholder, gas reporter configuration for cost analysis. Import dotenv at the top of the config file to enable environment variable usage. Add proper TypeScript types for the configuration object. Ensure all network configurations use environment variables for sensitive data.",
             "status": "done",
-            "testStrategy": "Test configuration loading without errors, verify network can be selected with `npx hardhat console --network polygon-amoy`, check compiler settings work with a test contract"
+            "testStrategy": "Test configuration loading without errors, verify network can be selected with `npx hardhat console --network polygon-amoy`, check compiler settings work with a test contract",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -51,19 +54,23 @@
             ],
             "details": "Create .env file with placeholders: ALCHEMY_API_KEY, DEPLOYER_PRIVATE_KEY, POLYGONSCAN_API_KEY. Add .env to .gitignore to prevent accidental commits. Create .env.example with the same structure but dummy values for documentation. Create additional project directories: backend/, cli/, frontend/ at the root level. Add README.md files in each directory explaining their purpose. Verify that environment variables are properly loaded in hardhat.config.ts using process.env. Test that the configuration correctly reads from .env file.",
             "status": "done",
-            "testStrategy": "Verify .env is in .gitignore, test environment variable loading in hardhat.config.ts, ensure all directories exist with proper structure, validate project compiles with env vars"
+            "testStrategy": "Verify .env is in .gitignore, test environment variable loading in hardhat.config.ts, ensure all directories exist with proper structure, validate project compiles with env vars",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Initialize Hardhat TypeScript project with basic structure, 2) Install and configure dependencies (OpenZeppelin, Alchemy SDK, etc.), 3) Configure hardhat.config.ts with networks and compiler settings, 4) Setup environment variables and project directories"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Develop ChainEquityToken Smart Contract",
         "description": "Implement the core ERC-20 token contract with allowlist-based transfer restrictions, virtual stock splits, and mutable symbol capabilities",
         "details": "Create ChainEquityToken.sol implementing:\n1. Inherit from OpenZeppelin ERC20 and Ownable\n2. State variables:\n   - `mapping(address => bool) public allowlist`\n   - `uint256 public splitMultiplier = 1`\n   - Mutable `_symbol` and `_name` storage\n3. Core functions:\n   - `approveWallet(address)` and `revokeWallet(address)` for allowlist management\n   - Override `_update()` to enforce allowlist checks on transfers\n   - `mint(address to, uint256 amount)` restricted to owner\n   - `executeSplit(uint256 multiplier)` for virtual stock splits\n   - `updateSymbol(string memory newSymbol)` for symbol changes\n   - Override `balanceOf()` and `totalSupply()` to multiply by splitMultiplier\n4. Events: WalletApproved, WalletRevoked, StockSplit, SymbolChanged, TransferBlocked\n5. Implement proper access control with onlyOwner modifiers",
         "testStrategy": "Write comprehensive unit tests covering: allowlist management, transfer restrictions (both approved/non-approved scenarios), minting functionality, stock split calculations maintaining ownership percentages, symbol changes, edge cases with zero balances and maximum uint256 values",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "done",
         "subtasks": [
@@ -74,7 +81,8 @@
             "dependencies": [],
             "details": "Create contracts/ChainEquityToken.sol file. Import ERC20, Ownable from OpenZeppelin v5. Define contract ChainEquityToken inheriting both. Add state variables: mapping(address => bool) public allowlist, uint256 public splitMultiplier = 1, string private _customSymbol, string private _customName. Initialize constructor with name, symbol, and initial owner parameters. Set up basic contract structure with pragma solidity ^0.8.20",
             "status": "done",
-            "testStrategy": "Unit tests to verify contract deployment, initial state variables are correctly set, ownership is assigned to deployer, and OpenZeppelin imports are working correctly"
+            "testStrategy": "Unit tests to verify contract deployment, initial state variables are correctly set, ownership is assigned to deployer, and OpenZeppelin imports are working correctly",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -85,7 +93,8 @@
             ],
             "details": "Implement approveWallet(address wallet) function with onlyOwner modifier that sets allowlist[wallet] = true and emits WalletApproved event. Implement revokeWallet(address wallet) with onlyOwner that sets allowlist[wallet] = false and emits WalletRevoked event. Add isApproved(address wallet) view function returning allowlist status. Define events: WalletApproved(address indexed wallet), WalletRevoked(address indexed wallet). Add require statements to prevent duplicate approvals/revocations",
             "status": "done",
-            "testStrategy": "Test approval and revocation of wallets, verify only owner can call these functions, test event emissions, validate duplicate approval/revocation prevention"
+            "testStrategy": "Test approval and revocation of wallets, verify only owner can call these functions, test event emissions, validate duplicate approval/revocation prevention",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -96,7 +105,8 @@
             ],
             "details": "Override _update(address from, address to, uint256 value) internal function from ERC20. Add logic to check if both from and to addresses are in allowlist (skip check for address(0) for minting/burning). If transfer violates allowlist, emit TransferBlocked event and revert with custom error. Define TransferBlocked event with from, to, amount parameters. Create custom error NotInAllowlist(address account). Ensure minting to non-allowlisted addresses is prevented",
             "status": "done",
-            "testStrategy": "Test transfers between approved wallets succeed, transfers involving non-approved wallets fail, test minting restrictions, verify TransferBlocked events are emitted correctly"
+            "testStrategy": "Test transfers between approved wallets succeed, transfers involving non-approved wallets fail, test minting restrictions, verify TransferBlocked events are emitted correctly",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -107,7 +117,8 @@
             ],
             "details": "Implement executeSplit(uint256 multiplier) function with onlyOwner modifier. Validate multiplier > 0 and != 1. Update splitMultiplier by multiplying current value with new multiplier. Override balanceOf(address account) to return super.balanceOf(account) * splitMultiplier. Override totalSupply() to return super.totalSupply() * splitMultiplier. Emit StockSplit event with multiplier and new splitMultiplier value. Add getSplitMultiplier() view function. Handle overflow checks using SafeMath or Solidity 0.8+ automatic checks",
             "status": "done",
-            "testStrategy": "Test split execution with various multipliers, verify balance calculations after splits, test multiple consecutive splits, validate overflow protection, ensure proportional ownership is maintained"
+            "testStrategy": "Test split execution with various multipliers, verify balance calculations after splits, test multiple consecutive splits, validate overflow protection, ensure proportional ownership is maintained",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -118,7 +129,8 @@
             ],
             "details": "Override symbol() and name() functions to return _customSymbol and _customName if set, otherwise return default values. Implement updateSymbol(string memory newSymbol) with onlyOwner modifier, validate newSymbol is not empty, update _customSymbol and emit SymbolChanged event. Implement updateName(string memory newName) similarly for token name. Define SymbolChanged event with oldSymbol and newSymbol parameters. Add getters for current symbol and name. Ensure symbol length validation (typically 3-11 characters)",
             "status": "done",
-            "testStrategy": "Test symbol and name updates, verify only owner can update, test empty string validation, verify event emissions, test symbol() and name() return correct values"
+            "testStrategy": "Test symbol and name updates, verify only owner can update, test empty string validation, verify event emissions, test symbol() and name() return correct values",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -131,19 +143,23 @@
             ],
             "details": "Implement mint(address to, uint256 amount) public onlyOwner function that calls _mint(to, amount). Ensure minting respects allowlist restrictions through _update override. Define all custom errors: InvalidMultiplier(), InvalidSymbol(), ZeroAddress(), ZeroAmount(). Add require statements with descriptive messages throughout all functions. Implement proper natspec documentation for all public/external functions. Add fallback and receive functions if needed. Ensure all state-changing functions emit appropriate events for off-chain indexing",
             "status": "done",
-            "testStrategy": "Test minting with valid and invalid parameters, verify all custom errors are thrown correctly, test edge cases with zero amounts and addresses, validate all events are emitted with correct parameters"
+            "testStrategy": "Test minting with valid and invalid parameters, verify all custom errors are thrown correctly, test edge cases with zero amounts and addresses, validate all events are emitted with correct parameters",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Break down into: 1) Create base ERC20 structure with OpenZeppelin imports, 2) Implement allowlist mechanism with approval/revocation functions, 3) Override transfer functions to enforce allowlist restrictions, 4) Implement virtual stock split functionality with multiplier logic, 5) Add mutable symbol capability with proper events, 6) Create comprehensive events and error handling"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Backend Services Foundation and Database Setup",
         "description": "Establish the Node.js/TypeScript backend infrastructure with Express API server, SQLite database, and Alchemy SDK integration",
         "details": "Setup backend services:\n1. Initialize backend/ directory with TypeScript configuration\n2. Install dependencies: `express`, `better-sqlite3`, `alchemy-sdk`, `typescript`, `@types/*`\n3. Create SQLite database schema (schema.sql):\n   - events table (block_number, transaction_hash, event_type, from_address, to_address, amount, data JSON, timestamp)\n   - balances table (address, balance, last_updated_block, last_updated_timestamp)\n   - corporate_actions table (action_type, block_number, transaction_hash, old_value, new_value, timestamp)\n4. Implement database.ts with connection management and prepared statements\n5. Setup Alchemy SDK configuration (alchemy.config.ts) with WebSocket support\n6. Create Express server.ts with basic routing structure\n7. Implement TypeScript interfaces for all data models",
         "testStrategy": "Test database CRUD operations, verify SQLite schema creation, test Alchemy SDK connection to Polygon Amoy, ensure Express server starts correctly with proper middleware configuration",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "done",
         "subtasks": [
@@ -154,7 +170,8 @@
             "dependencies": [],
             "details": "Create backend/ directory with proper folder structure (src/, dist/, tests/). Initialize package.json with npm init. Install core dependencies: express, typescript, @types/node, @types/express, ts-node, nodemon for development. Create tsconfig.json with strict mode, ES2020 target, and proper module resolution. Setup .env file structure for configuration variables. Configure build and dev scripts in package.json.",
             "status": "done",
-            "testStrategy": "Verify TypeScript compilation works, ensure all dependencies are installed correctly, test that npm scripts run without errors"
+            "testStrategy": "Verify TypeScript compilation works, ensure all dependencies are installed correctly, test that npm scripts run without errors",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -165,7 +182,8 @@
             ],
             "details": "Install better-sqlite3 and @types/better-sqlite3. Create schema.sql file with three tables: events table with columns for block_number (INTEGER), transaction_hash (TEXT PRIMARY KEY), event_type (TEXT), from_address (TEXT), to_address (TEXT), amount (TEXT), data (JSON), timestamp (INTEGER). Create balances table with address (TEXT PRIMARY KEY), balance (TEXT), last_updated_block (INTEGER), last_updated_timestamp (INTEGER). Create corporate_actions table with action_type (TEXT), block_number (INTEGER), transaction_hash (TEXT), old_value (TEXT), new_value (TEXT), timestamp (INTEGER). Add appropriate indexes for query performance.",
             "status": "done",
-            "testStrategy": "Test schema creation with sample data insertion, verify all constraints work correctly, test index performance with query execution plans"
+            "testStrategy": "Test schema creation with sample data insertion, verify all constraints work correctly, test index performance with query execution plans",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -176,7 +194,8 @@
             ],
             "details": "Create database.ts file with Database class implementing singleton pattern for connection management. Implement prepared statements for all CRUD operations: insertEvent(), updateBalance(), getBalance(), getEvents(), insertCorporateAction(). Add transaction support with begin(), commit(), rollback() methods. Implement database initialization method that runs schema.sql on first startup. Add connection pooling and error handling with automatic retry logic. Create TypeScript interfaces for all database models (Event, Balance, CorporateAction).",
             "status": "done",
-            "testStrategy": "Unit tests for all database methods, test transaction rollback scenarios, verify prepared statement performance, test connection recovery after database errors"
+            "testStrategy": "Unit tests for all database methods, test transaction rollback scenarios, verify prepared statement performance, test connection recovery after database errors",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -187,7 +206,8 @@
             ],
             "details": "Create server.ts with Express application setup. Configure middleware stack: cors for cross-origin requests, helmet for security headers, express.json() for JSON parsing, morgan for request logging. Implement global error handler middleware with proper error response formatting. Setup route structure with separate route files for /api/issuer, /api/corporate, /api/captable endpoints. Configure server to listen on configurable port from environment variables. Add health check endpoint at /health. Implement graceful shutdown handling for SIGTERM/SIGINT signals.",
             "status": "done",
-            "testStrategy": "Test server startup and shutdown, verify all middleware is working correctly, test error handling with various error scenarios, validate CORS configuration"
+            "testStrategy": "Test server startup and shutdown, verify all middleware is working correctly, test error handling with various error scenarios, validate CORS configuration",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -198,20 +218,24 @@
             ],
             "details": "Install alchemy-sdk and ethers dependencies. Create alchemy.config.ts with AlchemySettings configuration for Polygon Amoy network. Configure WebSocket provider for real-time event subscriptions. Set up authentication with Alchemy API key from environment variables. Implement connection management with automatic reconnection logic for WebSocket disconnections. Create helper functions for converting between different unit formats (wei, ether). Setup contract ABI interfaces for the token contract. Implement retry logic with exponential backoff for failed RPC calls.",
             "status": "done",
-            "testStrategy": "Test connection to Alchemy Polygon Amoy network, verify WebSocket subscription works, test reconnection after network interruption, validate contract interaction methods"
+            "testStrategy": "Test connection to Alchemy Polygon Amoy network, verify WebSocket subscription works, test reconnection after network interruption, validate contract interaction methods",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Initialize TypeScript backend project with proper configuration, 2) Design and implement SQLite database schema with all tables, 3) Create database connection layer with Better-SQLite3, 4) Setup Express server with middleware and basic routing, 5) Configure Alchemy SDK with WebSocket support"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Implement Issuer Service for Token Management",
         "description": "Build the core service responsible for wallet approvals, token minting, and executing corporate actions through smart contract interactions",
         "details": "Create issuer.service.ts with:\n1. Initialize Alchemy SDK client and contract instance with signer\n2. Wallet management methods:\n   - `approveWallet(address)`: Submit approval transaction\n   - `revokeWallet(address)`: Submit revocation transaction\n   - `isWalletApproved(address)`: Query allowlist status\n   - `getApprovedWallets()`: Return all approved addresses\n3. Token operations:\n   - `mintTokens(to, amount)`: Mint with proper unit conversion\n   - Gas estimation for all operations\n4. Corporate actions:\n   - `executeSplit(multiplier)`: Trigger stock split\n   - `updateSymbol(newSymbol)`: Change token symbol\n5. Transaction management:\n   - Wait for confirmations\n   - Return formatted transaction receipts\n   - Error handling with retry logic",
         "testStrategy": "Integration tests for end-to-end wallet approval and minting flow, verify gas estimation accuracy, test transaction failure scenarios and retry mechanisms, validate corporate action execution",
         "priority": "high",
         "dependencies": [
-          2,
-          3
+          "2",
+          "3"
         ],
         "status": "done",
         "subtasks": [
@@ -222,7 +246,8 @@
             "dependencies": [],
             "details": "Create issuer.service.ts file with IssuerService class. Initialize Alchemy SDK with network configuration for Polygon Amoy. Set up contract instance using ABI and deployed address from config. Configure wallet/signer for transaction signing. Implement constructor to accept configuration parameters and establish connection to blockchain.",
             "status": "done",
-            "testStrategy": "Unit tests to verify Alchemy SDK initialization, mock contract instance creation, test configuration parameter handling"
+            "testStrategy": "Unit tests to verify Alchemy SDK initialization, mock contract instance creation, test configuration parameter handling",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -233,7 +258,8 @@
             ],
             "details": "Implement approveWallet(address) method to submit approval transaction to smart contract. Create revokeWallet(address) for removing addresses from allowlist. Build isWalletApproved(address) to query current approval status. Implement getApprovedWallets() to retrieve all approved addresses from contract events or state. Add proper type checking and address validation.",
             "status": "done",
-            "testStrategy": "Integration tests for wallet approval/revocation flow, mock contract calls, verify address validation and error handling"
+            "testStrategy": "Integration tests for wallet approval/revocation flow, mock contract calls, verify address validation and error handling",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -244,7 +270,8 @@
             ],
             "details": "Implement mintTokens(to, amount) method with proper decimal conversion based on token decimals. Add gas estimation logic using estimateGas() before transaction submission. Implement dynamic gas price fetching for optimal transaction costs. Handle unit conversion between user input and blockchain representation. Add validation for minting permissions and amount limits.",
             "status": "done",
-            "testStrategy": "Test minting with various amounts, verify gas estimation accuracy, test decimal conversion edge cases, validate permission checks"
+            "testStrategy": "Test minting with various amounts, verify gas estimation accuracy, test decimal conversion edge cases, validate permission checks",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -255,7 +282,8 @@
             ],
             "details": "Create executeSplit(multiplier) method to trigger stock split transactions with proper validation of multiplier values. Implement updateSymbol(newSymbol) for changing token symbol on-chain. Add validation for symbol format and length restrictions. Include event emission tracking for corporate actions. Implement proper authorization checks to ensure only authorized addresses can execute these actions.",
             "status": "done",
-            "testStrategy": "Test split execution with various multipliers, verify symbol update constraints, test authorization failures, validate event emissions"
+            "testStrategy": "Test split execution with various multipliers, verify symbol update constraints, test authorization failures, validate event emissions",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -268,20 +296,24 @@
             ],
             "details": "Implement transaction submission wrapper with configurable confirmation blocks. Add retry logic with exponential backoff for failed transactions. Create formatted transaction receipt return objects with relevant data. Implement comprehensive error handling for common Web3 errors like insufficient gas, network issues, and reverted transactions. Add transaction status monitoring and timeout handling. Include logging for transaction lifecycle events.",
             "status": "done",
-            "testStrategy": "Test retry logic with simulated failures, verify timeout handling, test various error scenarios, validate transaction receipt formatting"
+            "testStrategy": "Test retry logic with simulated failures, verify timeout handling, test various error scenarios, validate transaction receipt formatting",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Create service class with Alchemy SDK initialization and contract binding, 2) Implement wallet management methods (approve/revoke/query), 3) Build token minting functionality with gas estimation, 4) Add corporate action methods (split/symbol change), 5) Implement transaction management with retry logic and error handling"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Build Event Indexer Service with Real-time Processing",
         "description": "Develop the blockchain event listener that processes Transfer, Approval, and Corporate Action events in real-time and maintains the local database state",
         "details": "Implement indexer.service.ts:\n1. WebSocket connection to Alchemy for real-time events\n2. Event listeners for:\n   - Transfer events: Update sender/recipient balances\n   - WalletApproved/Revoked: Track allowlist changes\n   - StockSplit: Record multiplier changes\n   - SymbolChanged: Log symbol updates\n3. Event processing pipeline:\n   - Parse event logs with proper ABI decoding\n   - Store in events table with full metadata\n   - Update balances table atomically\n   - Handle blockchain reorganizations\n4. Historical indexing:\n   - `reindexFromBlock(blockNumber)` for catching up\n   - Batch processing for efficiency\n5. Monitoring:\n   - Health checks for WebSocket connection\n   - Auto-reconnect on disconnection\n   - Event processing metrics",
         "testStrategy": "Test real-time event capture, verify balance calculations match on-chain state, test reorganization handling, validate historical reindexing accuracy, stress test with high event volume",
         "priority": "medium",
         "dependencies": [
-          3,
-          4
+          "3",
+          "4"
         ],
         "status": "done",
         "subtasks": [
@@ -292,7 +324,8 @@
             "dependencies": [],
             "details": "Initialize Alchemy SDK WebSocket provider in indexer.service.ts. Configure connection parameters including network (Polygon Amoy), API key, and WebSocket options. Implement connection state management with automatic reconnection logic on disconnection. Add health check monitoring to track connection status and emit events on connection state changes. Set up error handlers for WebSocket failures and implement exponential backoff for reconnection attempts.",
             "status": "done",
-            "testStrategy": "Test WebSocket connection establishment, simulate disconnections and verify auto-reconnect, test health check responses, verify connection state events"
+            "testStrategy": "Test WebSocket connection establishment, simulate disconnections and verify auto-reconnect, test health check responses, verify connection state events",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -303,7 +336,8 @@
             ],
             "details": "Set up event filters for each event type using contract ABI definitions. Implement listeners for Transfer events to track balance changes, WalletApproved/WalletRevoked for allowlist updates, StockSplit for multiplier tracking, and SymbolChanged for symbol updates. Configure event filters with proper topics and address filtering. Manage subscriptions lifecycle and ensure proper cleanup on service shutdown. Add event queueing mechanism to handle burst traffic.",
             "status": "done",
-            "testStrategy": "Test each event listener with mock events, verify filter configurations, test subscription management, simulate high event volume scenarios"
+            "testStrategy": "Test each event listener with mock events, verify filter configurations, test subscription management, simulate high event volume scenarios",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -314,7 +348,8 @@
             ],
             "details": "Implement ABI decoder using ethers.js or web3.js to parse raw event logs. Create event processor classes for each event type with validation logic. Build pipeline stages: raw log reception, ABI decoding, data validation, transformation to database schema, and error handling. Add event deduplication to prevent duplicate processing. Implement event ordering to ensure sequential processing within same block. Add metrics collection for processing performance.",
             "status": "done",
-            "testStrategy": "Test ABI decoding with various event types, verify data transformation accuracy, test deduplication logic, validate sequential processing"
+            "testStrategy": "Test ABI decoding with various event types, verify data transformation accuracy, test deduplication logic, validate sequential processing",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -325,7 +360,8 @@
             ],
             "details": "Create database transaction handlers for atomic updates to balances and events tables. Implement balance calculation logic that accounts for transfers and maintains running totals. Store complete event metadata including block number, transaction hash, timestamp, and decoded parameters. Build batch insert operations for efficiency during historical indexing. Implement database triggers or constraints to ensure data integrity. Add indexes on frequently queried fields for performance optimization.",
             "status": "done",
-            "testStrategy": "Test atomic transaction handling, verify balance calculations match on-chain state, test batch operations performance, validate data integrity constraints"
+            "testStrategy": "Test atomic transaction handling, verify balance calculations match on-chain state, test batch operations performance, validate data integrity constraints",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -336,7 +372,8 @@
             ],
             "details": "Implement block confirmation tracking to detect potential reorganizations. Create rollback mechanism to revert database state to last stable block when reorg detected. Track uncle blocks and monitor for chain switches. Implement reprocessing logic to re-index affected blocks after reorganization. Store block hashes to verify chain continuity. Add configurable confirmation threshold before considering blocks finalized. Implement alerting for significant reorganization events.",
             "status": "done",
-            "testStrategy": "Simulate blockchain reorganizations and verify correct rollback, test reprocessing accuracy, validate chain continuity checks"
+            "testStrategy": "Simulate blockchain reorganizations and verify correct rollback, test reprocessing accuracy, validate chain continuity checks",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -348,20 +385,24 @@
             ],
             "details": "Implement reindexFromBlock(blockNumber) method for catching up from specific block. Create batch fetching logic to retrieve multiple blocks in single RPC calls. Build parallel processing pipeline for historical events while maintaining order. Implement progress tracking and resumable indexing on interruption. Add rate limiting to prevent API throttling. Create block range chunking for memory-efficient processing. Implement checkpointing to save progress periodically. Add performance metrics for indexing speed.",
             "status": "done",
-            "testStrategy": "Test batch processing with large block ranges, verify resumable indexing after interruption, test rate limiting effectiveness, validate historical data accuracy"
+            "testStrategy": "Test batch processing with large block ranges, verify resumable indexing after interruption, test rate limiting effectiveness, validate historical data accuracy",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Break down into: 1) Setup WebSocket connection with Alchemy for real-time event monitoring, 2) Implement event listeners for all contract events, 3) Create event processing pipeline with ABI decoding, 4) Build database update logic for balances and events, 5) Implement blockchain reorganization handling, 6) Add historical indexing with batch processing capabilities"
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Create Cap-Table Service for Ownership Analytics",
         "description": "Implement the service that generates real-time and historical cap-table snapshots with ownership percentages and export capabilities",
         "details": "Build captable.service.ts:\n1. Core cap-table generation:\n   - `generateCapTable(blockNumber?)`: Query balances at specific block\n   - Calculate ownership percentages\n   - Account for split multipliers correctly\n   - Sort by balance descending\n2. Export functionality:\n   - `exportToCSV()`: Format with headers (Address, Balance, Ownership %, Last Updated)\n   - `exportToJSON()`: Structured JSON with metadata\n3. Analytics methods:\n   - `getHolderCount()`: Total unique holders\n   - `getTotalSupply()`: Accounting for splits\n   - `getOwnershipDistribution()`: Statistical analysis\n   - `getTopHolders(limit)`: Largest holders\n4. Historical queries:\n   - Point-in-time cap-table reconstruction\n   - Balance changes over time\n5. Performance optimization with indexed queries",
         "testStrategy": "Verify cap-table calculations match on-chain data, test CSV/JSON export formats, validate historical queries against known states, test with various split multipliers",
         "priority": "medium",
         "dependencies": [
-          3,
-          5
+          "3",
+          "5"
         ],
         "status": "done",
         "subtasks": [
@@ -372,7 +413,8 @@
             "dependencies": [],
             "details": "Implement captable.service.ts with generateCapTable(blockNumber?) method that queries the balances table at a specific block height, retrieves total supply accounting for splits, calculates ownership percentages for each holder, properly applies split multipliers to balances, and sorts results by balance in descending order. Include proper TypeScript interfaces for cap-table entries and ensure accurate decimal handling for percentage calculations.",
             "status": "done",
-            "testStrategy": "Unit test cap-table generation with mock balance data, verify ownership percentage calculations sum to 100%, test with various split multiplier scenarios, validate sorting logic"
+            "testStrategy": "Unit test cap-table generation with mock balance data, verify ownership percentage calculations sum to 100%, test with various split multiplier scenarios, validate sorting logic",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -383,7 +425,8 @@
             ],
             "details": "Add exportToCSV() method that generates CSV with headers (Address, Balance, Ownership %, Last Updated), properly escapes values, and handles large decimal numbers. Implement exportToJSON() that creates structured JSON with metadata including generation timestamp, block number, total supply, and holder count. Both methods should work with the cap-table data structure from generateCapTable() and handle edge cases like empty cap-tables.",
             "status": "done",
-            "testStrategy": "Test CSV export format compliance and proper escaping, validate JSON structure and metadata accuracy, test with empty and large cap-tables"
+            "testStrategy": "Test CSV export format compliance and proper escaping, validate JSON structure and metadata accuracy, test with empty and large cap-tables",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -394,7 +437,8 @@
             ],
             "details": "Implement getHolderCount() to return total unique holders, getTotalSupply() that correctly accounts for split multipliers, getOwnershipDistribution() that calculates statistical metrics like Gini coefficient and concentration ratios, and getTopHolders(limit) that returns the largest holders with their ownership percentages. Include methods for calculating median holding, average holding, and standard deviation of holdings.",
             "status": "done",
-            "testStrategy": "Verify holder count matches database records, test total supply calculation with splits, validate statistical calculations against known distributions, test top holders query performance"
+            "testStrategy": "Verify holder count matches database records, test total supply calculation with splits, validate statistical calculations against known distributions, test top holders query performance",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -405,20 +449,24 @@
             ],
             "details": "Extend generateCapTable() to support historical block queries using the events table to reconstruct balances at any point in time. Implement getBalanceChanges(address, fromBlock, toBlock) to track balance evolution over time. Add caching layer for frequently queried historical states. Ensure queries are optimized with proper database indexes on block_number and address fields. Handle edge cases like querying before token deployment.",
             "status": "done",
-            "testStrategy": "Test historical reconstruction against known past states, verify balance changes match event logs, test query performance with large datasets, validate caching behavior"
+            "testStrategy": "Test historical reconstruction against known past states, verify balance changes match event logs, test query performance with large datasets, validate caching behavior",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Implement core cap-table generation with ownership percentage calculations, 2) Add export functionality for CSV and JSON formats, 3) Build analytics methods for holder statistics and distribution, 4) Implement historical cap-table queries with point-in-time reconstruction"
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Develop CLI Tool for Operator Interactions",
         "description": "Create a comprehensive command-line interface for all token management operations with colored output and user-friendly formatting",
         "details": "Implement CLI with Commander.js:\n1. Project structure:\n   - cli/index.ts: Main entry point with command registration\n   - cli/commands/: Individual command files\n   - cli/utils/: Formatting and validation helpers\n2. Commands to implement:\n   - Wallet: `approve`, `revoke`, `status`, `list-approved`\n   - Token: `mint`, `transfer`, `balance`\n   - Corporate: `split`, `symbol`\n   - Cap-table: `captable` with --block and --format options\n   - Utilities: `deploy`, `verify`, `demo`\n3. Features:\n   - Colored output with chalk\n   - Table formatting with cli-table3\n   - Input validation and error handling\n   - Progress indicators for long operations\n   - Transaction confirmation prompts\n4. Configuration:\n   - Read from .env for network settings\n   - Support multiple networks (local, amoy)",
         "testStrategy": "Test each command with valid and invalid inputs, verify transaction submission and confirmation, test output formatting and error messages, validate CSV/JSON exports from CLI",
         "priority": "medium",
         "dependencies": [
-          4,
-          6
+          "4",
+          "6"
         ],
         "status": "done",
         "subtasks": [
@@ -429,7 +477,8 @@
             "dependencies": [],
             "details": "Create cli/ directory with index.ts as main entry point. Setup TypeScript configuration for CLI module. Install Commander.js, chalk for colored output, cli-table3 for formatted tables, and inquirer for prompts. Implement base command structure with program.name('chainequity').version('1.0.0').description(). Create commands/ and utils/ subdirectories. Setup command registration pattern that dynamically loads all command files from commands/ directory. Configure tsconfig.json for CLI with proper module resolution.",
             "status": "done",
-            "testStrategy": "Test CLI initialization and help command output, verify TypeScript compilation, test command registration mechanism"
+            "testStrategy": "Test CLI initialization and help command output, verify TypeScript compilation, test command registration mechanism",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -440,7 +489,8 @@
             ],
             "details": "Implement cli/commands/wallet.ts with four subcommands. Create 'approve <address>' command that calls contract.approveWallet() with validation for valid Ethereum addresses. Build 'revoke <address>' command for removing wallet approval. Add 'status <address>' to check if specific address is approved. Implement 'list-approved' to fetch and display all approved addresses in a formatted table. Add transaction confirmation prompts before executing approve/revoke. Include proper error handling for invalid addresses and failed transactions. Use chalk for success (green) and error (red) messages.",
             "status": "done",
-            "testStrategy": "Test address validation for all commands, verify transaction submission and confirmation flow, test table formatting for list output"
+            "testStrategy": "Test address validation for all commands, verify transaction submission and confirmation flow, test table formatting for list output",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -451,7 +501,8 @@
             ],
             "details": "Create cli/commands/token.ts with mint, transfer, and balance subcommands. Implement 'mint <to> <amount>' with owner-only validation and amount parsing (supporting decimal notation). Build 'transfer <to> <amount>' with allowlist checking before submission. Add 'balance <address>' to query and display token balance with proper formatting (commas for thousands). Include --wei flag for raw values without decimals conversion. Add progress indicators using ora spinner for transaction mining. Implement proper error messages for insufficient balance, unauthorized minting attempts, and non-allowlisted transfers.",
             "status": "done",
-            "testStrategy": "Test amount parsing and validation, verify decimal/wei conversion accuracy, test error handling for restricted operations"
+            "testStrategy": "Test amount parsing and validation, verify decimal/wei conversion accuracy, test error handling for restricted operations",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -462,7 +513,8 @@
             ],
             "details": "Create cli/commands/corporate.ts with split and symbol subcommands. Implement 'split <multiplier>' command that executes stock split with validation for positive integers. Add confirmation prompt showing impact (e.g., '1 token will become X tokens'). Build 'symbol <new-symbol>' command with validation for valid token symbols (3-5 uppercase characters). Add 'captable' command with --block flag for historical queries and --format option (table/csv/json). Implement CSV and JSON export functionality using fs.writeFileSync. Format cap-table with ownership percentages and proper number formatting. Include total supply and holder count in output.",
             "status": "done",
-            "testStrategy": "Test multiplier validation and calculation display, verify symbol validation rules, test all export formats for cap-table data"
+            "testStrategy": "Test multiplier validation and calculation display, verify symbol validation rules, test all export formats for cap-table data",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -475,19 +527,23 @@
             ],
             "details": "Implement cli/commands/utils.ts with deploy, verify, and demo commands. Create 'deploy' command that deploys new contract instance with initial parameters. Build 'verify <address>' to verify contract on Polygonscan using hardhat-verify. Add 'demo' command that runs through all CLI features in sequence with sample data. Create cli/utils/config.ts to read .env file for RPC URLs and private keys. Support --network flag (local/amoy/polygon) for all commands. Implement cli/utils/formatter.ts with formatAddress(), formatAmount(), and formatTable() helpers. Add comprehensive error handling with detailed messages and recovery suggestions.",
             "status": "done",
-            "testStrategy": "Test network switching functionality, verify demo mode executes all commands successfully, test configuration loading from .env"
+            "testStrategy": "Test network switching functionality, verify demo mode executes all commands successfully, test configuration loading from .env",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Setup Commander.js project structure with command registration, 2) Implement wallet management commands (approve/revoke/status), 3) Create token operation commands (mint/transfer/balance), 4) Add corporate action commands (split/symbol), 5) Build utility commands with formatted output and error handling"
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Contract Deployment and Verification Scripts",
         "description": "Create deployment automation scripts for local and Polygon Amoy networks with Polygonscan verification",
         "details": "Develop deployment infrastructure:\n1. scripts/deploy.ts:\n   - Deploy ChainEquityToken with initial parameters\n   - Store deployed address in .env\n   - Log deployment details (address, block, gas used)\n   - Support for different networks via --network flag\n2. scripts/verify.ts:\n   - Automated Polygonscan verification\n   - Constructor argument encoding\n   - Retry logic for verification API\n3. scripts/demo-flow.ts:\n   - Automated demonstration script\n   - Deploy contract\n   - Approve 3 test wallets\n   - Mint initial tokens\n   - Execute transfers (success and failure cases)\n   - Perform 7-for-1 stock split\n   - Change symbol\n   - Export cap-table at each stage\n4. scripts/setup-local.ts:\n   - Initialize local Hardhat node\n   - Fund test accounts\n   - Deploy contracts for development",
         "testStrategy": "Test deployment to local network, verify contract on testnet block explorer, run complete demo flow end-to-end, validate gas consumption meets targets",
         "priority": "high",
         "dependencies": [
-          2
+          "2"
         ],
         "status": "done",
         "subtasks": [
@@ -498,7 +554,8 @@
             "dependencies": [],
             "details": "Implement deploy.ts script with: 1) Network detection using Hardhat runtime environment, 2) Constructor parameter configuration for ChainEquityToken (name, symbol, initial supply), 3) Deployment transaction execution with gas estimation, 4) Deployed address storage in .env file using fs operations, 5) Comprehensive logging of deployment details including contract address, transaction hash, block number, gas used, and network name, 6) Support for --network flag to deploy to local/amoy/mainnet, 7) Error handling for failed deployments with rollback suggestions",
             "status": "done",
-            "testStrategy": "Test deployment on local Hardhat network first, verify contract address is saved to .env, check deployment logs contain all required information, deploy to Amoy testnet and verify transaction on Polygonscan"
+            "testStrategy": "Test deployment on local Hardhat network first, verify contract address is saved to .env, check deployment logs contain all required information, deploy to Amoy testnet and verify transaction on Polygonscan",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -509,7 +566,8 @@
             ],
             "details": "Create verify.ts script featuring: 1) Read deployed contract address from .env file, 2) Encode constructor arguments matching deployment parameters, 3) Submit verification request to Polygonscan API using hardhat-verify plugin, 4) Implement exponential backoff retry logic (3 attempts with 5/10/20 second delays), 5) Handle common verification errors (already verified, pending verification, rate limits), 6) Support for different network explorers (Polygonscan for Amoy/mainnet), 7) Verbose logging of verification status and response, 8) Option to verify specific contract by address parameter",
             "status": "done",
-            "testStrategy": "Deploy contract to Amoy and run verification, test retry logic by simulating API failures, verify contract shows as verified on Polygonscan explorer, test with already verified contract"
+            "testStrategy": "Deploy contract to Amoy and run verification, test retry logic by simulating API failures, verify contract shows as verified on Polygonscan explorer, test with already verified contract",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -520,7 +578,8 @@
             ],
             "details": "Develop demo-flow.ts implementing: 1) Deploy new ChainEquityToken instance or use existing from .env, 2) Approve 3 test wallets using approveWallet function, 3) Mint initial tokens (10000 to wallet1, 5000 to wallet2, 2500 to wallet3), 4) Execute successful transfers between approved wallets, 5) Attempt and catch failed transfer from non-approved wallet, 6) Perform 7-for-1 stock split and verify balances multiplied correctly, 7) Change token symbol from CEQ to CEQX, 8) Export cap-table snapshots after each major operation to JSON files, 9) Generate summary report of all operations with gas costs, 10) Clean error handling with transaction details",
             "status": "done",
-            "testStrategy": "Run complete demo flow on local network, verify all operations complete successfully, check cap-table exports are accurate at each stage, validate gas consumption is within expected ranges, test failure scenarios work correctly"
+            "testStrategy": "Run complete demo flow on local network, verify all operations complete successfully, check cap-table exports are accurate at each stage, validate gas consumption is within expected ranges, test failure scenarios work correctly",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -529,21 +588,25 @@
             "dependencies": [],
             "details": "Implement setup-local.ts with: 1) Start local Hardhat node programmatically or connect to existing node, 2) Generate or use predefined test accounts with private keys, 3) Fund test accounts with ETH from account[0] (10 ETH each for gas), 4) Deploy ChainEquityToken contract to local network, 5) Pre-approve 5 test wallets for immediate testing, 6) Mint initial token distribution (configurable amounts), 7) Save all addresses and private keys to .env.local file, 8) Display setup summary with account addresses, balances, and contract address, 9) Option to reset/clean existing local setup, 10) Watch mode to keep node running for development",
             "status": "done",
-            "testStrategy": "Verify local node starts successfully, check all test accounts receive ETH funding, confirm contract deploys and test wallets are approved, validate .env.local contains correct information"
+            "testStrategy": "Verify local node starts successfully, check all test accounts receive ETH funding, confirm contract deploys and test wallets are approved, validate .env.local contains correct information",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Create main deployment script with network configuration, 2) Implement Polygonscan verification script with retry logic, 3) Build demo flow script for comprehensive testing, 4) Add local setup script for development environment"
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "REST API Endpoints and Express Routes",
         "description": "Implement comprehensive REST API with proper error handling, input validation, and response formatting",
         "details": "Create Express API routes:\n1. Issuer endpoints (api/routes.ts):\n   - POST /api/issuer/approve\n   - POST /api/issuer/revoke  \n   - GET /api/issuer/status/:address\n   - GET /api/issuer/approved\n   - POST /api/issuer/mint\n2. Corporate actions:\n   - POST /api/corporate/split\n   - POST /api/corporate/symbol\n   - GET /api/corporate/history\n3. Cap-table endpoints:\n   - GET /api/captable\n   - GET /api/captable/:blockNumber\n   - GET /api/captable/export?format=csv|json\n4. Analytics:\n   - GET /api/analytics/holders\n   - GET /api/analytics/supply\n   - GET /api/analytics/distribution\n5. Middleware:\n   - Request validation\n   - Error handling\n   - CORS configuration\n   - Rate limiting\n   - Response formatting",
         "testStrategy": "API integration tests for all endpoints, test error responses and validation, verify CORS and rate limiting, load test critical endpoints",
         "priority": "medium",
         "dependencies": [
-          3,
-          4,
-          6
+          "3",
+          "4",
+          "6"
         ],
         "status": "done",
         "subtasks": [
@@ -554,7 +617,8 @@
             "dependencies": [],
             "details": "Implement POST /api/issuer/approve, POST /api/issuer/revoke, GET /api/issuer/status/:address, GET /api/issuer/approved, and POST /api/issuer/mint endpoints. Each endpoint should validate input parameters, call the issuer service methods, handle errors appropriately, and return standardized JSON responses. Include request body validation using express-validator or joi for POST endpoints.",
             "status": "done",
-            "testStrategy": "Write integration tests using supertest to verify each endpoint's functionality, test input validation rules, error responses for invalid data, and successful responses with correct status codes"
+            "testStrategy": "Write integration tests using supertest to verify each endpoint's functionality, test input validation rules, error responses for invalid data, and successful responses with correct status codes",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -565,7 +629,8 @@
             ],
             "details": "Implement POST /api/corporate/split for executing stock splits, POST /api/corporate/symbol for changing token symbols, and GET /api/corporate/history for retrieving corporate action history. Ensure proper authorization checks, validate split ratios and symbol formats, implement pagination for history endpoint, and return formatted responses with action confirmation details.",
             "status": "done",
-            "testStrategy": "Test corporate action endpoints with valid and invalid inputs, verify authorization middleware works correctly, test history pagination, and validate response formats match API specifications"
+            "testStrategy": "Test corporate action endpoints with valid and invalid inputs, verify authorization middleware works correctly, test history pagination, and validate response formats match API specifications",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -576,7 +641,8 @@
             ],
             "details": "Create GET /api/captable for current cap-table, GET /api/captable/:blockNumber for historical snapshots, and GET /api/captable/export with format query parameter supporting CSV and JSON exports. Implement efficient database queries, handle large datasets with streaming responses, format CSV output with proper headers, and include ownership percentage calculations in responses.",
             "status": "done",
-            "testStrategy": "Test cap-table retrieval at different block heights, verify CSV and JSON export formats are correct, test performance with large holder counts, validate ownership percentage calculations"
+            "testStrategy": "Test cap-table retrieval at different block heights, verify CSV and JSON export formats are correct, test performance with large holder counts, validate ownership percentage calculations",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -587,7 +653,8 @@
             ],
             "details": "Build GET /api/analytics/holders for holder count and concentration metrics, GET /api/analytics/supply for total supply and circulating supply data, and GET /api/analytics/distribution for token distribution analysis including whale detection and decentralization metrics. Cache frequently requested analytics data, implement efficient aggregation queries, and return visualizable data formats.",
             "status": "done",
-            "testStrategy": "Verify analytics calculations match on-chain data, test caching mechanisms, validate distribution metrics accuracy, test endpoint performance under load"
+            "testStrategy": "Verify analytics calculations match on-chain data, test caching mechanisms, validate distribution metrics accuracy, test endpoint performance under load",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -601,25 +668,29 @@
             ],
             "details": "Implement validation middleware using express-validator for request body/params/query validation, create centralized error handler with proper status codes and error messages, configure CORS for allowed origins, add rate limiting using express-rate-limit to prevent abuse, implement response formatter for consistent API responses, add request logging middleware for debugging, and setup helmet for security headers.",
             "status": "done",
-            "testStrategy": "Test rate limiting triggers correctly, verify CORS headers are set properly, test error handler catches all error types, validate security headers are present, test request validation middleware blocks invalid inputs"
+            "testStrategy": "Test rate limiting triggers correctly, verify CORS headers are set properly, test error handler catches all error types, validate security headers are present, test request validation middleware blocks invalid inputs",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Implement issuer management endpoints, 2) Create corporate action endpoints, 3) Build cap-table and export endpoints, 4) Add analytics endpoints, 5) Setup middleware for validation, error handling, and CORS"
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Comprehensive Testing Suite and Documentation",
         "description": "Write unit tests, integration tests, gas benchmarks, and complete technical documentation for the entire system",
         "details": "Complete testing and documentation:\n1. Unit tests (test/unit/):\n   - ChainEquityToken.test.ts: 100% contract coverage\n   - Test allowlist, transfers, minting, splits, symbol changes\n   - Edge cases and security scenarios\n2. Integration tests (test/integration/):\n   - issuer.test.ts: End-to-end token operations\n   - indexer.test.ts: Event processing verification\n   - corporate-actions.test.ts: Complex workflows\n3. Gas reporting:\n   - Benchmark all operations\n   - Generate GAS_REPORT.md\n   - Verify < 100k gas for transfers\n4. Documentation:\n   - README.md: Setup, usage, features\n   - ARCHITECTURE.md: System design, diagrams\n   - DECISIONS.md: Technical decision log\n   - API.md: Endpoint documentation\n   - DISCLAIMER.md: Legal/regulatory warnings\n5. Code quality:\n   - ESLint + Prettier configuration\n   - Pre-commit hooks with Husky",
         "testStrategy": "Achieve >90% code coverage, all tests passing on local and testnet, documentation reviewed for completeness, gas costs within specified targets",
         "priority": "high",
         "dependencies": [
-          2,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9
+          "2",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
         ],
         "status": "in-progress",
         "subtasks": [
@@ -630,7 +701,8 @@
             "dependencies": [],
             "details": "Create test/unit/ChainEquityToken.test.ts using Hardhat and Chai. Test allowlist management (approveWallet, revokeWallet), transfer restrictions with approved and non-approved addresses, minting functionality with ownership checks, virtual stock splits maintaining proportional ownership, symbol and name changes, edge cases including zero balances, maximum uint256 values, and reentrancy protection. Include negative test cases for unauthorized access and invalid parameters. Generate coverage report to ensure 100% line, branch, and function coverage.",
             "status": "done",
-            "testStrategy": "Use Hardhat test framework with Chai assertions, implement beforeEach hooks for clean contract deployment, use expect.to.be.revertedWith for error testing, generate coverage report with solidity-coverage plugin"
+            "testStrategy": "Use Hardhat test framework with Chai assertions, implement beforeEach hooks for clean contract deployment, use expect.to.be.revertedWith for error testing, generate coverage report with solidity-coverage plugin",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -641,7 +713,8 @@
             ],
             "details": "Implement test/integration/ directory with issuer.test.ts for testing token operations through the API, indexer.test.ts for verifying event processing and database synchronization, and corporate-actions.test.ts for complex workflows like stock splits and symbol changes. Use test fixtures with known blockchain state, mock Alchemy SDK responses where appropriate, verify database state after operations, test error recovery and retry logic, ensure proper event emission and processing flow.",
             "status": "done",
-            "testStrategy": "Use Jest with supertest for API testing, create test database instances, use Sinon for mocking external services, implement test data factories for consistent test scenarios"
+            "testStrategy": "Use Jest with supertest for API testing, create test database instances, use Sinon for mocking external services, implement test data factories for consistent test scenarios",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -652,7 +725,8 @@
             ],
             "details": "Configure Hardhat gas reporter plugin in hardhat.config.ts, create scripts/gas-benchmark.ts to systematically test gas consumption for all operations including transfers, minting, allowlist updates, and stock splits. Generate GAS_REPORT.md with tabulated results showing min/max/average gas costs per operation. Verify all standard transfers stay under 100k gas limit. Include gas optimization recommendations and comparison with standard ERC-20 implementations. Set up CI pipeline to run gas benchmarks on pull requests.",
             "status": "done",
-            "testStrategy": "Use hardhat-gas-reporter for automated measurements, create benchmark scenarios with varying data sizes, compare results against gas targets defined in requirements"
+            "testStrategy": "Use hardhat-gas-reporter for automated measurements, create benchmark scenarios with varying data sizes, compare results against gas targets defined in requirements",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -665,7 +739,8 @@
             ],
             "details": "Write README.md with project overview, quick start guide, installation steps, configuration instructions, and usage examples. Create ARCHITECTURE.md with system design diagrams using Mermaid, component interactions, data flow diagrams, and deployment architecture. Document all API endpoints in API.md with request/response schemas, authentication details, and example curl commands. Maintain DECISIONS.md log explaining key technical choices, trade-offs, and rationale. Add DISCLAIMER.md with legal and regulatory considerations for tokenized securities. Include code comments and JSDoc/NatSpec documentation throughout the codebase.",
             "status": "done",
-            "testStrategy": "Use markdown linters for formatting consistency, validate all code examples execute correctly, ensure API documentation matches actual implementation, review for completeness and clarity"
+            "testStrategy": "Use markdown linters for formatting consistency, validate all code examples execute correctly, ensure API documentation matches actual implementation, review for completeness and clarity",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -674,19 +749,23 @@
             "dependencies": [],
             "details": "Install and configure ESLint with TypeScript parser and recommended rules for both frontend and backend code. Set up Prettier with consistent formatting rules across the project. Configure Husky to run pre-commit hooks that execute linting, formatting checks, and run unit tests before allowing commits. Add .eslintrc.js, .prettierrc, and .husky/ configuration files. Create npm scripts for linting, formatting, and fixing code issues. Add solhint for Solidity linting with security-focused rules. Configure lint-staged to only check modified files for performance.",
             "status": "done",
-            "testStrategy": "Verify pre-commit hooks block commits with linting errors, test auto-formatting works correctly, ensure all existing code passes configured rules, validate CI pipeline runs same checks"
+            "testStrategy": "Verify pre-commit hooks block commits with linting errors, test auto-formatting works correctly, ensure all existing code passes configured rules, validate CI pipeline runs same checks",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Write unit tests for smart contract with full coverage, 2) Create integration tests for backend services, 3) Implement gas benchmarking and reporting, 4) Write comprehensive technical documentation (README, API, Architecture), 5) Setup code quality tools (linting, formatting, pre-commit hooks)"
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Next.js Frontend Dashboard (Optional)",
         "description": "Build a web-based operator dashboard with shadcn/ui components for visual token management and cap-table viewing",
         "details": "Create Next.js 15 frontend:\n1. Setup Next.js with TypeScript and Tailwind CSS\n2. Install shadcn/ui components and Alchemy SDK\n3. Pages to implement:\n   - Home: Dashboard with stats and recent activity\n   - /approve: Wallet approval management UI\n   - /mint: Token minting interface\n   - /captable: Interactive cap-table viewer\n   - /corporate: Corporate actions interface\n4. Components:\n   - WalletConnect.tsx: Web3 wallet integration\n   - ApprovalForm.tsx: Approve/revoke interface\n   - MintForm.tsx: Token minting with validation\n   - CapTableView.tsx: Sortable/filterable table\n   - CorporateActions.tsx: Split and symbol change forms\n5. Features:\n   - Real-time updates via WebSocket\n   - Transaction status tracking\n   - Export functionality\n   - Responsive design",
         "testStrategy": "Test wallet connection flow, verify form validations, test real-time updates, ensure mobile responsiveness, validate data accuracy against backend",
         "priority": "low",
         "dependencies": [
-          9
+          "9"
         ],
         "status": "done",
         "subtasks": [
@@ -697,7 +776,8 @@
             "dependencies": [],
             "details": "Create new Next.js 15 app with TypeScript template, install and configure Tailwind CSS with custom color scheme for financial dashboard, set up ESLint and Prettier configurations, create folder structure for pages, components, hooks, and utils, configure next.config.js for Web3 compatibility",
             "status": "done",
-            "testStrategy": "Verify build process completes successfully, test Tailwind CSS compilation, ensure TypeScript configuration is strict, validate ESLint rules are working"
+            "testStrategy": "Verify build process completes successfully, test Tailwind CSS compilation, ensure TypeScript configuration is strict, validate ESLint rules are working",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -708,7 +788,8 @@
             ],
             "details": "Install and configure WalletConnect v2, ethers.js, and Alchemy SDK dependencies, create WalletConnect.tsx component with MetaMask/WalletConnect support, implement custom hooks (useWallet, useContract, useBalance), set up Web3Provider context for app-wide wallet state, configure network switching between mainnet and testnets",
             "status": "done",
-            "testStrategy": "Test wallet connection flow with different providers, verify network switching functionality, test transaction signing, validate Alchemy SDK integration"
+            "testStrategy": "Test wallet connection flow with different providers, verify network switching functionality, test transaction signing, validate Alchemy SDK integration",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -720,7 +801,8 @@
             ],
             "details": "Implement Home page with stats cards showing total supply, holder count, recent activity feed, create /approve page with wallet approval/revocation interface and approved wallets list, build /mint page with form validation and transaction status tracking, develop /captable page with sortable/filterable table using tanstack-table, implement /corporate page for split and symbol change operations",
             "status": "done",
-            "testStrategy": "Test page routing and navigation, verify data fetching and loading states, test form submissions and validations, ensure responsive design on all breakpoints"
+            "testStrategy": "Test page routing and navigation, verify data fetching and loading states, test form submissions and validations, ensure responsive design on all breakpoints",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -732,7 +814,8 @@
             ],
             "details": "Install shadcn/ui components (Button, Card, Table, Form, Input, Dialog, Toast), create ApprovalForm.tsx with address validation and transaction feedback, build MintForm.tsx with amount input and recipient selection, implement CapTableView.tsx with export functionality (CSV/JSON), develop CorporateActions.tsx with split ratio and symbol change forms, add TransactionStatus component for tracking pending/confirmed transactions",
             "status": "done",
-            "testStrategy": "Test component props and TypeScript types, verify form validations work correctly, test table sorting and filtering logic, ensure accessibility standards are met"
+            "testStrategy": "Test component props and TypeScript types, verify form validations work correctly, test table sorting and filtering logic, ensure accessibility standards are met",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -744,20 +827,24 @@
             ],
             "details": "Set up WebSocket connection to backend indexer service for live events, implement real-time transaction status updates with progress indicators, create event listeners for Transfer, Approval, Split, and SymbolChange events, add automatic data refetching when relevant events occur, implement connection retry logic and error handling, add notification system using toast components for important updates",
             "status": "done",
-            "testStrategy": "Test WebSocket connection establishment and reconnection logic, verify real-time updates reflect in UI immediately, test error handling and fallback mechanisms, validate performance with multiple concurrent updates"
+            "testStrategy": "Test WebSocket connection establishment and reconnection logic, verify real-time updates reflect in UI immediately, test error handling and fallback mechanisms, validate performance with multiple concurrent updates",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break down into: 1) Setup Next.js 15 with TypeScript and Tailwind CSS, 2) Implement wallet connection and Web3 integration, 3) Create core pages (dashboard, approval, minting, cap-table), 4) Build reusable components with shadcn/ui, 5) Add real-time updates via WebSocket"
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Production Deployment and Demo Execution",
         "description": "Deploy the complete system to Polygon Amoy testnet and execute a comprehensive demonstration of all features",
         "details": "Final deployment steps:\n1. Deploy ChainEquityToken to Polygon Amoy\n2. Verify contract on Polygonscan\n3. Deploy backend services to cloud (optional):\n   - Dockerize backend services\n   - Setup persistent SQLite storage\n   - Configure environment variables\n4. Run complete demo flow:\n   - Approve 5 test wallets\n   - Mint 10,000 tokens each to 3 wallets\n   - Execute various transfers (success and blocked)\n   - Perform 7-for-1 stock split\n   - Change symbol from CEQ to CEQX\n   - Generate cap-table at each stage\n5. Create demo video/documentation:\n   - Record CLI interactions\n   - Show Polygonscan transactions\n   - Demonstrate cap-table changes\n   - Highlight compliance features\n6. Performance validation:\n   - Verify gas costs meet targets\n   - Test system under load\n   - Validate data consistency",
         "testStrategy": "Complete end-to-end system test on Polygon Amoy, verify all transactions on Polygonscan, validate cap-table accuracy, ensure demo runs without errors",
         "priority": "medium",
         "dependencies": [
-          8,
-          10
+          "8",
+          "10"
         ],
         "status": "pending",
         "subtasks": [
@@ -768,7 +855,8 @@
             "dependencies": [],
             "details": "Execute the deployment script to deploy ChainEquityToken to Polygon Amoy testnet with initial parameters (name: ChainEquity, symbol: CEQ, decimals: 18). Use the Alchemy RPC endpoint configured in hardhat.config.ts. After successful deployment, run the verification script to verify the contract on Polygonscan, ensuring constructor arguments are properly encoded. Store the deployed contract address in .env file and document deployment details including transaction hash, block number, and gas used. Confirm the contract is accessible and verified on Polygonscan explorer.",
             "status": "pending",
-            "testStrategy": "Verify contract deployment transaction on Polygonscan, confirm contract is verified and source code is visible, test basic contract interactions through Polygonscan interface, validate contract address is correctly stored in environment variables"
+            "testStrategy": "Verify contract deployment transaction on Polygonscan, confirm contract is verified and source code is visible, test basic contract interactions through Polygonscan interface, validate contract address is correctly stored in environment variables",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -779,7 +867,8 @@
             ],
             "details": "Create Docker configurations for the issuer service, indexer service, and corporate actions service if cloud deployment is desired. Set up Docker Compose file to orchestrate all services with proper networking. Configure persistent SQLite storage with volume mounts to ensure data persistence across container restarts. Set up comprehensive environment variables including Alchemy API keys, contract addresses from deployment, and database paths. For local deployment, ensure all services can run directly with npm scripts. Document both local and containerized deployment options with clear instructions for switching between them.",
             "status": "pending",
-            "testStrategy": "Test Docker container builds successfully, verify services start and connect to contract, validate SQLite persistence across container restarts, ensure environment variables are properly injected"
+            "testStrategy": "Test Docker container builds successfully, verify services start and connect to contract, validate SQLite persistence across container restarts, ensure environment variables are properly injected",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -790,7 +879,8 @@
             ],
             "details": "Execute the full demo scenario step by step: First approve 5 test wallets through the issuer service CLI. Mint 10,000 CEQ tokens each to 3 approved wallets and verify balances. Execute multiple transfer scenarios including successful transfers between approved wallets and blocked transfers to non-approved addresses. Perform a 7-for-1 stock split corporate action and verify all balances are correctly multiplied. Execute symbol change from CEQ to CEQX and confirm update on-chain. Generate cap-table reports at each major step showing ownership distribution. Monitor and log all Polygonscan transactions for documentation. Ensure each operation completes successfully with reasonable gas costs.",
             "status": "pending",
-            "testStrategy": "Verify each transaction on Polygonscan, validate cap-table accuracy at each stage, confirm all blocked transfers fail appropriately, ensure corporate actions execute correctly with proper event emissions"
+            "testStrategy": "Verify each transaction on Polygonscan, validate cap-table accuracy at each stage, confirm all blocked transfers fail appropriately, ensure corporate actions execute correctly with proper event emissions",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -801,24 +891,28 @@
             ],
             "details": "Create comprehensive demo documentation including video recording of CLI interactions showing the complete flow from deployment through all features. Capture and document all Polygonscan transaction links with screenshots of key transactions. Create a timeline document showing cap-table evolution at each stage with visual representations. Compile gas cost analysis comparing actual costs against target benchmarks for each operation type (deployment, minting, transfers, corporate actions). Run load testing to validate system performance under stress with multiple concurrent operations. Generate a final demo report in markdown format with all metrics, links, and visual assets. Create a quick-start guide for others to reproduce the demo independently.",
             "status": "pending",
-            "testStrategy": "Validate all documentation links work correctly, ensure gas costs are within 10% of targets, verify system handles at least 100 operations per minute, confirm demo can be reproduced from documentation"
+            "testStrategy": "Validate all documentation links work correctly, ensure gas costs are within 10% of targets, verify system handles at least 100 operations per minute, confirm demo can be reproduced from documentation",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Deploy and verify contract on Polygon Amoy, 2) Setup backend services (optional cloud deployment), 3) Execute comprehensive demo flow with all features, 4) Create demo documentation and validate performance metrics"
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Implement Historical 'As-of Block' Snapshot Feature",
         "description": "Generate on-demand historical cap-table snapshots at any given block number for auditing and compliance purposes",
         "details": "Implement historical point-in-time snapshot capability:\n1. Backend Service Enhancement:\n   - Extend captable.service.ts to support historical queries\n   - Implement on-demand computation from events table\n   - Calculate balances, ownership percentages at specific block\n   - Include historical events up to specified block\n   - Optimize queries with proper indexing\n2. CLI Command:\n   - Add new 'snapshot <block>' command\n   - Display cap-table state at specified block\n   - Support --format flag for CSV/JSON export\n   - Show ownership percentages and event history\n3. API Endpoint Enhancement:\n   - Extend GET /api/captable?block=<number>\n   - Support query parameter for block number\n   - Return historical snapshot data\n   - Include metadata (block number, timestamp)\n4. Frontend Integration:\n   - Add block number selector to captable page\n   - Support ?block=<number> URL query parameter\n   - Display historical state with visual indicators\n   - Show block timestamp and event count\n5. Data Requirements:\n   - Token holder addresses and balances at block\n   - Ownership percentages at that point in time\n   - Historical events leading to that state\n   - Account for split multipliers correctly",
         "testStrategy": "Test historical snapshot accuracy against known past states, verify ownership calculations match on-chain data, test with various block numbers including edge cases, validate query performance with large event histories, ensure split multipliers are correctly applied",
         "priority": "medium",
         "dependencies": [
-          6,
-          7,
-          9,
-          11
+          "6",
+          "7",
+          "9",
+          "11"
         ],
-        "status": "pending",
+        "status": "done",
         "complexity": 5,
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down into: 1) Enhance backend captable service with historical query support and event-based reconstruction, 2) Add CLI snapshot command with formatting options, 3) Extend API endpoint to support block query parameter, 4) Integrate block selector in frontend captable page",
@@ -829,8 +923,10 @@
             "description": "Extend captable.service.ts to support historical cap-table reconstruction at any given block number using event-based balance calculation",
             "dependencies": [],
             "details": "Modify captable.service.ts to add historical snapshot capability. Implement getSnapshotAtBlock(blockNumber) method that queries the events table to reconstruct token holder balances at the specified block. Calculate ownership percentages based on total supply at that block. Properly apply split multipliers that were active at the historical block. Retrieve all relevant events (Transfer, StockSplit) up to and including the specified block. Optimize database queries with proper indexes on block_number and address fields. Add caching layer for frequently queried historical blocks. Handle edge cases like querying blocks before contract deployment or before first events.",
-            "status": "pending",
-            "testStrategy": "Test snapshot accuracy by comparing with known historical states from blockchain, verify balance calculations match on-chain data at various blocks, test with blocks before/after stock splits, validate query performance with large event histories, ensure caching works correctly"
+            "status": "done",
+            "testStrategy": "Test snapshot accuracy by comparing with known historical states from blockchain, verify balance calculations match on-chain data at various blocks, test with blocks before/after stock splits, validate query performance with large event histories, ensure caching works correctly",
+            "updatedAt": "2025-11-05T19:51:55.580Z",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -840,8 +936,10 @@
               1
             ],
             "details": "Create cli/commands/snapshot.ts with snapshot command implementation. Accept block number as required argument. Add --format flag supporting 'table', 'csv', and 'json' output formats. Display token holder addresses, balances, and ownership percentages at the specified block. Show metadata including block number, block timestamp, and total event count up to that block. Format table output using cli-table3 with proper column alignment. Implement CSV export with headers (Address, Balance, Ownership %, Block Number, Timestamp). Generate JSON output with complete metadata and holder array. Add validation for block number (must be positive integer, not in future). Include error handling for blocks with no data or before token deployment.",
-            "status": "pending",
-            "testStrategy": "Test command with various block numbers and format options, verify output accuracy against backend service, test error handling for invalid blocks, validate CSV and JSON export formats, ensure table formatting is readable"
+            "status": "done",
+            "testStrategy": "Test command with various block numbers and format options, verify output accuracy against backend service, test error handling for invalid blocks, validate CSV and JSON export formats, ensure table formatting is readable",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T19:57:59.608Z"
           },
           {
             "id": 3,
@@ -851,8 +949,10 @@
               1
             ],
             "details": "Update backend/src/routes/captable.ts to handle optional 'block' query parameter. Parse and validate block number from query string. Call getSnapshotAtBlock() when block parameter is provided, otherwise return current state. Include metadata in response: block number, block timestamp, holder count, total supply. Add proper error responses for invalid block numbers (400 Bad Request). Implement response caching for historical snapshots with appropriate cache headers. Add rate limiting for historical queries to prevent abuse. Update API documentation in comments with example requests. Ensure backward compatibility - endpoint works without block parameter as before.",
-            "status": "pending",
-            "testStrategy": "Test endpoint with and without block parameter, verify historical data accuracy, test error handling for invalid blocks, validate response format and metadata, test caching behavior, ensure backward compatibility"
+            "status": "done",
+            "testStrategy": "Test endpoint with and without block parameter, verify historical data accuracy, test error handling for invalid blocks, validate response format and metadata, test caching behavior, ensure backward compatibility",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T20:02:45.133Z"
           },
           {
             "id": 4,
@@ -862,16 +962,23 @@
               3
             ],
             "details": "Update frontend/app/captable/page.tsx to add block number input/selector component. Read ?block= query parameter from URL on page load and fetch historical data if present. Add UI input field for users to enter block number with validation (positive integers only). Implement 'View Snapshot' button that updates URL and fetches historical data. Display visual indicator showing whether viewing current or historical state (e.g., banner or badge). Show block metadata: block number, timestamp, and 'Historical Snapshot' label. Add 'Return to Current' button when viewing historical state. Update table to show historical balances and ownership percentages. Preserve existing export functionality (CSV/JSON) for historical snapshots. Ensure URL updates when selecting different blocks for shareable links.",
-            "status": "pending",
-            "testStrategy": "Test block selector input validation, verify URL query parameter handling on page load, test historical data fetching and display, validate visual indicators for historical vs current state, ensure export works for historical snapshots, test browser back/forward navigation"
+            "status": "done",
+            "testStrategy": "Test block selector input validation, verify URL query parameter handling on page load, test historical data fetching and display, validate visual indicators for historical vs current state, ensure export works for historical snapshots, test browser back/forward navigation",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T20:04:14.114Z"
           }
-        ]
+        ],
+        "updatedAt": "2025-11-05T20:04:14.114Z"
       }
     ],
     "metadata": {
-      "created": "2025-11-04T02:07:35.583Z",
-      "updated": "2025-11-05T00:00:00.000Z",
-      "description": "Tasks for master context"
+      "version": "1.0.0",
+      "lastModified": "2025-11-05T20:04:14.115Z",
+      "taskCount": 13,
+      "completedCount": 11,
+      "tags": [
+        "master"
+      ]
     }
   }
 }
