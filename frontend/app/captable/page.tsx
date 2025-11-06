@@ -15,8 +15,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Download, ChevronDown, ChevronRight, ChevronLeft, Copy, History, X } from 'lucide-react';
 import { formatUnits } from 'viem';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+// Generate contrasting colors for pie chart
+const generateColors = (count: number): string[] => {
+  const colors = [
+    '#3b82f6', // blue
+    '#10b981', // green
+    '#f59e0b', // amber
+    '#ef4444', // red
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#06b6d4', // cyan
+    '#f97316', // orange
+    '#84cc16', // lime
+    '#6366f1', // indigo
+  ];
+
+  // If we need more colors than predefined, generate them
+  if (count <= colors.length) {
+    return colors.slice(0, count);
+  }
+
+  const generatedColors = [...colors];
+  for (let i = colors.length; i < count; i++) {
+    const hue = (i * 137.5) % 360; // Golden angle approximation for good distribution
+    generatedColors.push(`hsl(${hue}, 70%, 50%)`);
+  }
+
+  return generatedColors;
+};
 
 interface CapTableHolder {
   address: string;
@@ -56,6 +86,7 @@ export default function CapTablePage() {
   const [totalHolders, setTotalHolders] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [holderDetails, setHolderDetails] = useState<Map<string, HolderDetail>>(new Map());
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -73,7 +104,12 @@ export default function CapTablePage() {
 
     const fetchCapTable = async () => {
       try {
-        setLoading(true);
+        // Use isRefreshing for subsequent loads to avoid flickering
+        if (capTable.length > 0) {
+          setIsRefreshing(true);
+        } else {
+          setLoading(true);
+        }
 
         // Build URL with optional block parameter
         const url = blockNumber
@@ -101,6 +137,7 @@ export default function CapTablePage() {
         setError(err instanceof Error ? err.message : 'Failed to fetch cap table');
       } finally {
         setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
@@ -294,7 +331,7 @@ export default function CapTablePage() {
               <p className="text-muted-foreground">No token holders found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className={`overflow-x-auto transition-opacity duration-200 ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
               <table className="w-full">
                 <thead className="bg-muted/50">
                   <tr>
@@ -451,7 +488,7 @@ export default function CapTablePage() {
                   ))}
                 </tbody>
               </table>
-              {isHistorical && blockNumber && (
+              {isHistorical && blockNumber && Number(blockNumber) !== latestBlock && (
                 <div className="px-6 py-2 bg-blue-50 dark:bg-blue-950/30 border-t border-blue-200 dark:border-blue-900">
                   <p className="text-xs text-blue-700 dark:text-blue-300">
                     Historical snapshot at block {blockNumber}
@@ -490,6 +527,7 @@ export default function CapTablePage() {
                 onClick={handlePreviousBlock}
                 disabled={
                   loading ||
+                  isRefreshing ||
                   (blockNumber ? Number(blockNumber) <= 1 : !latestBlock || latestBlock <= 1)
                 }
                 className="h-9 w-9 p-0"
@@ -516,10 +554,14 @@ export default function CapTablePage() {
                   variant="outline"
                   size="sm"
                   onClick={handleViewSnapshot}
-                  disabled={!blockInput || loading}
+                  disabled={!blockInput || loading || isRefreshing}
                   className="h-7 w-28 text-xs"
                 >
-                  Go
+                  {isRefreshing ? (
+                    <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full"></div>
+                  ) : (
+                    'Go'
+                  )}
                 </Button>
               </div>
               <Button
@@ -529,6 +571,7 @@ export default function CapTablePage() {
                 disabled={
                   !blockNumber || // Disabled when viewing current state (not historical)
                   loading ||
+                  isRefreshing ||
                   (latestBlock !== null && Number(blockNumber) >= latestBlock) // Disabled when at or beyond latest block
                 }
                 className="h-9 w-9 p-0"
@@ -539,12 +582,12 @@ export default function CapTablePage() {
 
             {/* Right: Action Button (or empty space to maintain grid) */}
             <div className="md:justify-self-end">
-              {isHistorical && latestBlock && (
+              {isHistorical && latestBlock && Number(blockNumber) !== latestBlock && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleViewCurrent}
-                  disabled={loading}
+                  disabled={loading || isRefreshing}
                   className="h-9 px-4"
                 >
                   Latest Block ({latestBlock})
@@ -554,6 +597,63 @@ export default function CapTablePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Ownership Distribution Pie Chart */}
+      {capTable.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Ownership Distribution</CardTitle>
+            <CardDescription>
+              Visual breakdown of token ownership by address
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={`transition-opacity duration-200 ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie
+                  data={capTable.map((holder) => ({
+                    name: `${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`,
+                    value: holder.ownershipPercentage,
+                    fullAddress: holder.address,
+                  }))}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  label={(entry) => `${entry.value.toFixed(2)}%`}
+                  labelLine={true}
+                >
+                  {capTable.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={generateColors(capTable.length)[index]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => `${value.toFixed(2)}%`}
+                  contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', border: 'none', borderRadius: '8px' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  formatter={(value, entry: any) => (
+                    <span className="text-sm">
+                      {value} ({entry.payload.value.toFixed(2)}%)
+                    </span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {isHistorical && blockNumber && Number(blockNumber) !== latestBlock && (
+              <div className="px-6 py-2 bg-blue-50 dark:bg-blue-950/30 border-t border-blue-200 dark:border-blue-900">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Historical snapshot at block {blockNumber}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Alert className="mt-6">
         <AlertDescription>
