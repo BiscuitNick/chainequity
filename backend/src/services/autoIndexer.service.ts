@@ -23,6 +23,7 @@ interface AutoIndexerConfig {
   wsUrl: string;
   contractAddress: string;
   debounceMs?: number;
+  pollingIntervalMs?: number;
 }
 
 /**
@@ -41,12 +42,14 @@ export class AutoIndexerService {
   private maxReconnectDelay: number = 8000; // 8 seconds max
   private config: AutoIndexerConfig;
   private debounceTimer: NodeJS.Timeout | null = null;
+  private pollingInterval: NodeJS.Timeout | null = null;
   private pendingSync: boolean = false;
   private lastProcessedBlock: number = 0;
 
   constructor(autoIndexerConfig: AutoIndexerConfig) {
     this.config = {
       debounceMs: 400, // 400ms default debounce
+      pollingIntervalMs: 3000, // 3 seconds default polling
       ...autoIndexerConfig,
     };
     this.db = getDatabase();
@@ -92,6 +95,7 @@ export class AutoIndexerService {
     try {
       await this.connect();
       this.isRunning = true;
+      this.startPolling();
       console.log('✅ Auto-indexer started successfully');
       console.log('👀 Watching for new blocks...\n');
     } catch (error) {
@@ -115,6 +119,9 @@ export class AutoIndexerService {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
+
+    // Stop polling
+    this.stopPolling();
 
     // Clear contract reference
     this.contract = null;
@@ -586,6 +593,48 @@ export class AutoIndexerService {
     } catch (error) {
       console.error('❌ Reconnection failed:', error);
       this.handleDisconnection();
+    }
+  }
+
+  /**
+   * Start polling to check for missed blocks
+   */
+  private startPolling() {
+    if (this.pollingInterval || !this.config.pollingIntervalMs) {
+      return;
+    }
+
+    this.pollingInterval = setInterval(() => {
+      this.checkForMissedBlocks().catch((err) => {
+        if (this.isRunning) {
+          console.error('Polling error:', err?.message || err);
+        }
+      });
+    }, this.config.pollingIntervalMs);
+  }
+
+  /**
+   * Check for missed blocks
+   */
+  private async checkForMissedBlocks() {
+    if (!this.wsProvider || !this.contract || !this.isRunning) {
+      return;
+    }
+
+    const currentBlock = await this.wsProvider.getBlockNumber();
+    if (currentBlock > this.lastProcessedBlock) {
+      console.log(`🔍 Poll detected gap: block ${currentBlock}, last ${this.lastProcessedBlock}`);
+      this.handleNewBlock(currentBlock);
+    }
+  }
+
+  /**
+   * Stop polling
+   */
+  private stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
   }
 
