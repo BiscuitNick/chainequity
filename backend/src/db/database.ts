@@ -170,6 +170,36 @@ export class DatabaseService {
     return stmt.all(limit, offset) as Event[];
   }
 
+  /**
+   * Get the latest block number from the events table
+   */
+  public getLatestBlock(): number {
+    // First try to get from events
+    const stmt = this.db.prepare(`
+      SELECT MAX(block_number) as latest_block FROM events
+    `);
+
+    const result = stmt.get() as { latest_block: number | null } | undefined;
+
+    // If we have events, return that block number
+    if (result?.latest_block !== null && result?.latest_block !== undefined) {
+      return result.latest_block;
+    }
+
+    // Otherwise, try to get last_synced_block from metadata
+    const lastSynced = this.getMetadata('last_synced_block');
+
+    if (lastSynced) {
+      const block = parseInt(lastSynced);
+      if (!isNaN(block) && block > 0) {
+        return block;
+      }
+    }
+
+    // Default to 0 if nothing found
+    return 0;
+  }
+
   // ============================================
   // Balance Operations
   // ============================================

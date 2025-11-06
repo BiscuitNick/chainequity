@@ -3,11 +3,10 @@
 /**
  * Dashboard Layout Component
  *
- * Main layout for dashboard pages with header and navigation
+ * Main layout for dashboard pages with header
  */
 
 import { Header } from './Header';
-import { Navigation } from './Navigation';
 import type { ReactNode } from 'react';
 
 interface DashboardLayoutProps {
@@ -18,12 +17,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        <Navigation />
-        <main className="flex-1 p-8">
-          {children}
-        </main>
-      </div>
+      <main>
+        {children}
+      </main>
     </div>
   );
 }

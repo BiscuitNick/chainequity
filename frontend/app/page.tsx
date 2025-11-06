@@ -1,85 +1,126 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useTokenInfo } from '@/hooks/useTokenInfo';
-import { useAccount } from 'wagmi';
-import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import { DashboardSection } from '@/components/sections/DashboardSection';
+import { ApproveSection } from '@/components/sections/ApproveSection';
+import { MintSection } from '@/components/sections/MintSection';
+import ApprovePage from './approve/page';
+import MintPage from './mint/page';
+import CapTablePage from './captable/page';
+import CorporatePage from './corporate/page';
+import EventsPage from './events/page';
+
+function SectionWrapper({
+  id,
+  title,
+  description,
+  children
+}: {
+  id: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-20 py-12 border-b border-border last:border-b-0">
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold mb-2">{title}</h2>
+          <p className="text-muted-foreground">{description}</p>
+        </div>
+        <div className="flex justify-center">
+          <div className="w-full">
+            {children}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
-  const { name, symbol, formattedTotalSupply, splitMultiplier, owner } = useTokenInfo();
-  const { address, isConnected } = useAccount();
+  const searchParams = useSearchParams();
+  const hasScrolledRef = useRef(false);
+
+  useEffect(() => {
+    // Only scroll on initial load or hash change, not on search param change
+    if (hasScrolledRef.current) return;
+
+    const hash = window.location.hash;
+    if (hash) {
+      hasScrolledRef.current = true;
+      const sectionId = hash.replace('#', '');
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, []);
+
+  // Reset scroll flag when hash changes (but not search params)
+  useEffect(() => {
+    const handleHashChange = () => {
+      hasScrolledRef.current = false;
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   return (
     <DashboardLayout>
-      <div>
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Welcome to ChainEquity</h2>
-          <p className="text-muted-foreground">
-            Token management dashboard for tokenized securities on Polygon Amoy testnet
-          </p>
-        </div>
+      <div className="space-y-0">
+        <SectionWrapper
+          id="dashboard"
+          title="Welcome to ChainEquity"
+          description="Token management dashboard for tokenized securities on Polygon Amoy testnet"
+        >
+          <DashboardSection />
+        </SectionWrapper>
 
-        {!isConnected ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4 border-2 border-dashed border-border rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Connect Your Wallet</h3>
-            <p className="text-muted-foreground mb-6">
-              Please connect your wallet to access the dashboard
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Token Name</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{name}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Symbol</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{symbol}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Total Supply</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formattedTotalSupply}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Split Multiplier</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{(Number(splitMultiplier) / 10000).toFixed(4).replace(/\.?0+$/, '')}x</p>
-              </CardContent>
-            </Card>
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-3">
-                <CardDescription>Contract Owner</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-mono break-all">{owner}</p>
-              </CardContent>
-            </Card>
-            {address && (
-              <Card className="md:col-span-2 lg:col-span-3">
-                <CardHeader className="pb-3">
-                  <CardDescription>Your Address</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm font-mono break-all">{address}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
+        <SectionWrapper
+          id="approve"
+          title="Wallet Approval Management"
+          description="Approve or revoke wallet addresses for token transfers"
+        >
+          <ApproveSection />
+        </SectionWrapper>
+
+        <SectionWrapper
+          id="mint"
+          title="Mint Tokens"
+          description="Create new tokens and send them to approved addresses"
+        >
+          <MintSection />
+        </SectionWrapper>
+
+        <SectionWrapper
+          id="captable"
+          title="Capitalization Table"
+          description="Token holder distribution and ownership percentages"
+        >
+          <CapTablePage />
+        </SectionWrapper>
+
+        <SectionWrapper
+          id="corporate"
+          title="Corporate Actions"
+          description="Execute stock splits and update token symbol"
+        >
+          <CorporatePage />
+        </SectionWrapper>
+
+        <SectionWrapper
+          id="events"
+          title="Blockchain Events"
+          description="All events related to this token on the blockchain"
+        >
+          <EventsPage />
+        </SectionWrapper>
       </div>
     </DashboardLayout>
   );

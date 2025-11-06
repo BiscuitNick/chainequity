@@ -31,7 +31,7 @@ export interface CapTable {
   holderCount: number;
   splitMultiplier: number;
   generatedAt: number;
-  blockNumber?: number;
+  blockNumber: number;
 }
 
 /**
@@ -75,6 +75,7 @@ export class CapTableService {
 
     if (balances.length === 0) {
       console.log('⚠️  No balances found in database');
+      const latestBlock = this.db.getLatestBlock();
       return {
         entries: [],
         totalSupply: '0',
@@ -82,7 +83,7 @@ export class CapTableService {
         holderCount: 0,
         splitMultiplier: 1,
         generatedAt: Date.now(),
-        blockNumber,
+        blockNumber: latestBlock,
       };
     }
 
@@ -125,6 +126,9 @@ export class CapTableService {
 
     console.log('✅ Cap-table generated\n');
 
+    // Get latest block number from database
+    const latestBlock = this.db.getLatestBlock();
+
     return {
       entries,
       totalSupply: totalSupply.toString(),
@@ -132,7 +136,7 @@ export class CapTableService {
       holderCount: entries.length,
       splitMultiplier,
       generatedAt: Date.now(),
-      blockNumber,
+      blockNumber: latestBlock,
     };
   }
 

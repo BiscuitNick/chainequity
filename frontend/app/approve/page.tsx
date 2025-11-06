@@ -175,7 +175,6 @@ export default function ApprovePage() {
               <h4 className="font-semibold mb-2">ℹ️ About Wallet Approvals</h4>
               <ul className="text-sm space-y-1">
                 <li>• Only approved wallets can send and receive tokens</li>
-                <li>• This ensures compliance with securities regulations</li>
                 <li>• Only the contract owner can approve or revoke wallets</li>
               </ul>
             </AlertDescription>

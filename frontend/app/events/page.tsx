@@ -6,7 +6,6 @@
  * View all blockchain events related to the token
  */
 
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useTokenInfo } from '@/hooks/useTokenInfo';
@@ -170,139 +169,128 @@ export default function EventsPage() {
 
   if (!isConnected) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center py-16">
-          <h3 className="text-xl font-semibold mb-2">Connect Your Wallet</h3>
-          <p className="text-muted-foreground">
-            Please connect your wallet to view events
-          </p>
-        </div>
-      </DashboardLayout>
+      <div className="flex flex-col items-center justify-center py-16">
+        <h3 className="text-xl font-semibold mb-2">Connect Your Wallet</h3>
+        <p className="text-muted-foreground">
+          Please connect your wallet to view events
+        </p>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div>
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Blockchain Events</h2>
-          <p className="text-muted-foreground">
-            All events related to this token on the blockchain
-          </p>
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Filter by type:</span>
+          <Select value={eventType} onValueChange={setEventType}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="Transfer">Transfers</SelectItem>
+              <SelectItem value="WalletApproved">Wallet Approvals</SelectItem>
+              <SelectItem value="WalletRevoked">Wallet Revocations</SelectItem>
+              <SelectItem value="StockSplit">Stock Splits</SelectItem>
+              <SelectItem value="SymbolChanged">Symbol Changes</SelectItem>
+              <SelectItem value="NameChanged">Name Changes</SelectItem>
+              <SelectItem value="TransferBlocked">Blocked Transfers</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Filter by type:</span>
-            <Select value={eventType} onValueChange={setEventType}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Events</SelectItem>
-                <SelectItem value="Transfer">Transfers</SelectItem>
-                <SelectItem value="WalletApproved">Wallet Approvals</SelectItem>
-                <SelectItem value="WalletRevoked">Wallet Revocations</SelectItem>
-                <SelectItem value="StockSplit">Stock Splits</SelectItem>
-                <SelectItem value="SymbolChanged">Symbol Changes</SelectItem>
-                <SelectItem value="NameChanged">Name Changes</SelectItem>
-                <SelectItem value="TransferBlocked">Blocked Transfers</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Event History</CardTitle>
-            <CardDescription>
-              Recent blockchain events (showing last {limit} events)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">Loading events...</p>
-              </div>
-            ) : events.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">No events found</p>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Time
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Event Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Details
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Block
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {events.map((event) => (
-                        <tr key={event.id} className="hover:bg-muted/50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            {formatTimestamp(event.timestamp)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEventBadge(event.event_type)}`}>
-                              {formatEventType(event.event_type)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm font-mono max-w-md truncate">
-                            {formatEventDetails(event)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                            {event.block_number}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="p-4 border-t border-border">
-                  <SimplePagination
-                    currentPage={page}
-                    onNext={handleNextPage}
-                    onPrevious={handlePreviousPage}
-                    hasPrevious={page > 1}
-                    hasNext={events.length === limit}
-                  />
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Alert className="mt-6">
-          <AlertDescription>
-            <h4 className="font-semibold mb-2">About Blockchain Events</h4>
-            <ul className="text-sm space-y-1">
-              <li>• All events are recorded on the blockchain and cannot be modified</li>
-              <li>• Events include transfers, mints, corporate actions, and wallet management</li>
-              <li>• Use the filter to view specific event types</li>
-              <li>• Events are displayed in reverse chronological order (newest first)</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
       </div>
-    </DashboardLayout>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Event History</CardTitle>
+          <CardDescription>
+            Recent blockchain events (showing last {limit} events)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">Loading events...</p>
+            </div>
+          ) : events.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">No events found</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Event Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Details
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Block
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {events.map((event) => (
+                      <tr key={event.id} className="hover:bg-muted/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {formatTimestamp(event.timestamp)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEventBadge(event.event_type)}`}>
+                            {formatEventType(event.event_type)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-mono max-w-md truncate">
+                          {formatEventDetails(event)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                          {event.block_number}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 border-t border-border">
+                <SimplePagination
+                  currentPage={page}
+                  onNext={handleNextPage}
+                  onPrevious={handlePreviousPage}
+                  hasPrevious={page > 1}
+                  hasNext={events.length === limit}
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Alert className="mt-6">
+        <AlertDescription>
+          <h4 className="font-semibold mb-2">About Blockchain Events</h4>
+          <ul className="text-sm space-y-1">
+            <li>• All events are recorded on the blockchain and cannot be modified</li>
+            <li>• Events include transfers, mints, corporate actions, and wallet management</li>
+            <li>• Use the filter to view specific event types</li>
+            <li>• Events are displayed in reverse chronological order (newest first)</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+    </div>
   );
 }
