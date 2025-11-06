@@ -31,8 +31,14 @@ interface BalanceHistory {
   blockNumber: number;
   timestamp: number;
   balanceChange: string;
+  balanceChangeRaw: string;
+  newBalance: string;
+  direction: 'in' | 'out' | 'neutral';
+  transactionType: 'Mint' | 'Transfer Received' | 'Transfer Sent' | 'Self Transfer';
   eventType: string;
   transactionHash: string;
+  gasUsed?: string;
+  gasPrice?: string;
 }
 
 interface HolderDetail {
@@ -115,6 +121,10 @@ export default function CapTablePage() {
       }
       const result = await response.json();
       const data: HolderDetail = result.data || result;
+
+      // Debug: Log the balance history to see what we're getting
+      console.log('Balance History for', address, data.balanceHistory);
+
       setHolderDetails(new Map(holderDetails.set(address, data)));
     } catch (err) {
       console.error('Failed to fetch holder details:', err);
@@ -415,17 +425,70 @@ export default function CapTablePage() {
                                           <th className="px-4 py-2 text-left">Time</th>
                                           <th className="px-4 py-2 text-left">Event Type</th>
                                           <th className="px-4 py-2 text-left">Balance Change</th>
+                                          <th className="px-4 py-2 text-left">New Balance</th>
+                                          <th className="px-4 py-2 text-left">Gas</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-border">
-                                        {holderDetails.get(holder.address)?.balanceHistory.map((history, idx) => (
-                                          <tr key={idx}>
-                                            <td className="px-4 py-2">{history.blockNumber}</td>
-                                            <td className="px-4 py-2">{formatTimestamp(history.timestamp)}</td>
-                                            <td className="px-4 py-2">{history.eventType}</td>
-                                            <td className="px-4 py-2">{history.balanceChange} {symbol}</td>
-                                          </tr>
-                                        ))}
+                                        {holderDetails.get(holder.address)?.balanceHistory.map((history, idx) => {
+                                          const isPositive = history.direction === 'in';
+                                          const isNegative = history.direction === 'out';
+                                          const changeColor = isPositive
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : isNegative
+                                            ? 'text-red-600 dark:text-red-400'
+                                            : 'text-muted-foreground';
+                                          const prefix = isPositive ? '+' : '';
+
+                                          // Safe gas cost calculation
+                                          let gasCost: string | null = null;
+                                          try {
+                                            if (history.gasUsed && history.gasPrice) {
+                                              const cost = (BigInt(history.gasUsed) * BigInt(history.gasPrice)) / BigInt('1000000000000000000');
+                                              gasCost = cost.toString();
+                                            }
+                                          } catch (e) {
+                                            gasCost = null;
+                                          }
+
+                                          // Safe balance change parsing
+                                          const balanceChange = history.balanceChange && !isNaN(parseFloat(history.balanceChange))
+                                            ? parseFloat(history.balanceChange).toFixed(2)
+                                            : '0.00';
+
+                                          // Safe new balance parsing
+                                          const newBalance = history.newBalance && !isNaN(parseFloat(history.newBalance))
+                                            ? parseFloat(history.newBalance).toFixed(2)
+                                            : '0.00';
+
+                                          return (
+                                            <tr key={idx}>
+                                              <td className="px-4 py-2">{history.blockNumber}</td>
+                                              <td className="px-4 py-2">{formatTimestamp(history.timestamp || 0)}</td>
+                                              <td className="px-4 py-2">
+                                                <span className="text-xs font-medium">{history.transactionType}</span>
+                                              </td>
+                                              <td className={`px-4 py-2 font-mono font-semibold ${changeColor}`}>
+                                                {prefix}{balanceChange} {symbol}
+                                              </td>
+                                              <td className="px-4 py-2 font-mono">
+                                                {newBalance} {symbol}
+                                              </td>
+                                              <td className="px-4 py-2 text-xs text-muted-foreground">
+                                                {history.gasUsed ? (
+                                                  <span title={`Gas Price: ${history.gasPrice ? (Number(history.gasPrice) / 1e9).toFixed(2) : 'N/A'} Gwei`}>
+                                                    {Number(history.gasUsed).toLocaleString()} gas
+                                                    {gasCost && parseFloat(gasCost) > 0 && (
+                                                      <span className="block">(~{parseFloat(gasCost).toFixed(8)} MATIC)</span>
+                                                    )}
+                                                  </span>
+                                                ) : (
+                                                  'N/A'
+                                                )}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
                                       </tbody>
                                     </table>
                                   </div>
