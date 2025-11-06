@@ -330,9 +330,16 @@ export class AutoIndexerService {
     try {
       const eventName = event.eventName;
 
-      // Get block timestamp
-      const block = await this.wsProvider?.getBlock(event.blockNumber);
+      // Get block timestamp and transaction receipt (for gas data)
+      const [block, receipt] = await Promise.all([
+        this.wsProvider?.getBlock(event.blockNumber),
+        this.wsProvider?.getTransactionReceipt(event.transactionHash),
+      ]);
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
+
+      // Extract gas data from receipt
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.gasPrice ? receipt.gasPrice.toString() : null;
 
       // Save to database based on event type
       if (eventName === 'Transfer' && event.args) {
@@ -346,6 +353,8 @@ export class AutoIndexerService {
           to_address: to,
           amount: value.toString(),
           data: JSON.stringify({ from, to, value: value.toString() }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
 
@@ -389,6 +398,8 @@ export class AutoIndexerService {
           to_address: wallet,
           amount: null,
           data: JSON.stringify({ wallet }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
       } else if (eventName === 'WalletRevoked' && event.args) {
@@ -402,6 +413,8 @@ export class AutoIndexerService {
           to_address: wallet,
           amount: null,
           data: JSON.stringify({ wallet }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
       } else if (eventName === 'StockSplit' && event.args) {
@@ -418,6 +431,8 @@ export class AutoIndexerService {
             multiplier: multiplier.toString(),
             newSplitMultiplier: newSplitMultiplier.toString(),
           }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
 
@@ -444,6 +459,8 @@ export class AutoIndexerService {
           to_address: null,
           amount: null,
           data: JSON.stringify({ oldSymbol, newSymbol }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
 
@@ -470,6 +487,8 @@ export class AutoIndexerService {
           to_address: null,
           amount: null,
           data: JSON.stringify({ oldName, newName }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
 
@@ -486,6 +505,8 @@ export class AutoIndexerService {
           to_address: to,
           amount: amount.toString(),
           data: JSON.stringify({ from, to, amount: amount.toString() }),
+          gas_used: gasUsed,
+          gas_price: gasPrice,
           timestamp,
         });
       }

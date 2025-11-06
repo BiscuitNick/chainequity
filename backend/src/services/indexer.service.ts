@@ -511,11 +511,28 @@ export class IndexerService {
         throw new Error('No provider available');
       }
 
-      // Fetch block and transaction receipt in parallel
-      const [block, receipt] = await Promise.all([
-        event.timestamp ? Promise.resolve(null) : provider.getBlock(event.blockNumber),
-        provider.getTransactionReceipt(event.transactionHash),
-      ]);
+      // Fetch transaction receipt with retry logic (for timing issues)
+      let receipt = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          receipt = await provider.getTransactionReceipt(event.transactionHash);
+          if (receipt) break;
+
+          // If receipt not found, wait a bit and retry
+          if (attempt < 2) {
+            console.log(`   ⏳ Receipt not found, retrying in 100ms... (attempt ${attempt + 1}/3)`);
+            await this.sleep(100);
+          }
+        } catch (err) {
+          console.warn(`   ⚠️ Error fetching receipt (attempt ${attempt + 1}/3):`, err);
+          if (attempt < 2) {
+            await this.sleep(100);
+          }
+        }
+      }
+
+      // Fetch block if timestamp not set
+      const block = event.timestamp ? null : await provider.getBlock(event.blockNumber);
 
       // Set timestamp if not already set
       if (!event.timestamp && block) {
@@ -523,8 +540,16 @@ export class IndexerService {
       }
 
       // Extract gas data from receipt
-      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
-      const gasPrice = receipt?.gasPrice ? receipt.gasPrice.toString() : null;
+      let gasUsed: string | null = null;
+      let gasPrice: string | null = null;
+
+      if (receipt) {
+        gasUsed = receipt.gasUsed ? receipt.gasUsed.toString() : null;
+        gasPrice = receipt.gasPrice ? receipt.gasPrice.toString() : null;
+        console.log(`   💰 Gas data - Used: ${gasUsed}, Price: ${gasPrice}`);
+      } else {
+        console.warn(`   ⚠️ No receipt available for tx ${event.transactionHash}`);
+      }
 
       this.db.insertEvent({
         event_type: event.eventType as any,
@@ -539,7 +564,7 @@ export class IndexerService {
         timestamp: event.timestamp || 0,
       });
 
-      console.log(`   ✅ Event saved to database [Gas: ${gasUsed}]`);
+      console.log(`   ✅ Event saved to database [Gas: ${gasUsed || 'N/A'}]`);
     } catch (error) {
       console.error('Failed to save event:', error);
       throw error;
