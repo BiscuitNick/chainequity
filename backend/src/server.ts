@@ -62,8 +62,10 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Apply rate limiting to API routes
-app.use('/api', apiLimiter);
+// Apply rate limiting to API routes (disabled in development)
+if (config.nodeEnv !== 'development') {
+  app.use('/api', apiLimiter);
+}
 
 // API routes
 app.use('/api/issuer', issuerRoutes);

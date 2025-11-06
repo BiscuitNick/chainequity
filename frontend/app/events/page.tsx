@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SimplePagination } from '@/components/ui/pagination';
-import { Filter } from 'lucide-react';
+import { Filter, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -29,11 +29,13 @@ interface Event {
   id: number;
   block_number: number;
   transaction_hash: string;
-  event_type: 'Transfer' | 'WalletApproved' | 'WalletRevoked' | 'StockSplit' | 'SymbolChanged' | 'NameChanged' | 'TransferBlocked';
+  event_type: 'Transfer' | 'Mint' | 'WalletApproved' | 'WalletRevoked' | 'StockSplit' | 'SymbolChanged' | 'NameChanged' | 'TransferBlocked';
   from_address: string | null;
   to_address: string | null;
   amount: string | null;
   data: string | null;
+  gas_used: string | null;
+  gas_price: string | null;
   timestamp: number;
 }
 
@@ -46,6 +48,7 @@ export default function EventsPage() {
   const [eventType, setEventType] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [expandedEventId, setExpandedEventId] = useState<number | null>(null);
 
   // Fetch events
   useEffect(() => {
@@ -55,13 +58,37 @@ export default function EventsPage() {
       try {
         setLoading(true);
         const offset = (page - 1) * limit;
-        const typeParam = eventType !== 'all' ? `&eventType=${eventType}` : '';
-        const response = await fetch(`${API_URL}/api/events?limit=${limit}&offset=${offset}${typeParam}`);
+
+        // Handle Mint filter - fetch Transfer events and filter on frontend
+        let typeParam = '';
+        if (eventType !== 'all') {
+          if (eventType === 'Mint') {
+            typeParam = '&eventType=Transfer';
+          } else {
+            typeParam = `&eventType=${eventType}`;
+          }
+        }
+
+        const response = await fetch(`${API_URL}/api/events?limit=${limit * 2}&offset=${offset}${typeParam}`);
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
         const data = await response.json();
-        setEvents(data.events || []);
+        let filteredEvents = data.events || [];
+
+        // Filter for Mint or Transfer based on from_address
+        if (eventType === 'Mint') {
+          filteredEvents = filteredEvents.filter((e: Event) =>
+            e.event_type === 'Transfer' && e.from_address === '0x0000000000000000000000000000000000000000'
+          );
+        } else if (eventType === 'Transfer') {
+          filteredEvents = filteredEvents.filter((e: Event) =>
+            e.event_type === 'Transfer' && e.from_address !== '0x0000000000000000000000000000000000000000'
+          );
+        }
+
+        // Limit results to the requested amount
+        setEvents(filteredEvents.slice(0, limit));
         setError('');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch events');
@@ -72,6 +99,14 @@ export default function EventsPage() {
 
     fetchEvents();
   }, [isConnected, page, limit, eventType]);
+
+  // Determine actual event type (distinguish Mint from Transfer)
+  const getActualEventType = (event: Event): Event['event_type'] => {
+    if (event.event_type === 'Transfer' && event.from_address === '0x0000000000000000000000000000000000000000') {
+      return 'Mint';
+    }
+    return event.event_type;
+  };
 
   // Format timestamp
   const formatTimestamp = (timestamp: number) => {
@@ -88,9 +123,22 @@ export default function EventsPage() {
     }
   };
 
+  // Format gas
+  const formatGas = (gasUsed: string | null) => {
+    if (!gasUsed) return 'N/A';
+    try {
+      const gas = parseInt(gasUsed);
+      return gas.toLocaleString();
+    } catch {
+      return 'N/A';
+    }
+  };
+
   // Format event type
   const formatEventType = (type: string) => {
     switch (type) {
+      case 'Mint':
+        return 'Mint';
       case 'WalletApproved':
         return 'Wallet Approved';
       case 'WalletRevoked':
@@ -111,6 +159,8 @@ export default function EventsPage() {
   // Get event icon/color
   const getEventBadge = (type: string) => {
     switch (type) {
+      case 'Mint':
+        return 'bg-emerald-500/10 text-emerald-500';
       case 'Transfer':
         return 'bg-blue-500/10 text-blue-500';
       case 'WalletApproved':
@@ -131,29 +181,80 @@ export default function EventsPage() {
 
   // Format event details
   const formatEventDetails = (event: Event) => {
-    switch (event.event_type) {
+    const actualType = getActualEventType(event);
+    switch (actualType) {
+      case 'Mint':
+        const mintTo = event.to_address || '0x0000...0000';
+        return `Minted ${formatAmount(event.amount)} ${symbol} to ${mintTo.slice(0, 6)}...${mintTo.slice(-4)}`;
       case 'Transfer':
         const from = event.from_address || '0x0000...0000';
         const to = event.to_address || '0x0000...0000';
         return `${from.slice(0, 6)}...${from.slice(-4)} → ${to.slice(0, 6)}...${to.slice(-4)} (${formatAmount(event.amount)} ${symbol})`;
       case 'WalletApproved':
-        return `Wallet ${event.to_address?.slice(0, 6)}...${event.to_address?.slice(-4)} approved`;
+        try {
+          const data = event.data ? JSON.parse(event.data) : {};
+          const wallet = data.wallet || event.to_address;
+          if (!wallet) return 'Wallet approved';
+          return `Wallet ${wallet.slice(0, 6)}...${wallet.slice(-4)} approved`;
+        } catch {
+          const wallet = event.to_address;
+          if (!wallet) return 'Wallet approved';
+          return `Wallet ${wallet.slice(0, 6)}...${wallet.slice(-4)} approved`;
+        }
       case 'WalletRevoked':
-        return `Wallet ${event.to_address?.slice(0, 6)}...${event.to_address?.slice(-4)} revoked`;
+        try {
+          const data = event.data ? JSON.parse(event.data) : {};
+          const wallet = data.wallet || event.to_address;
+          if (!wallet) return 'Wallet revoked';
+          return `Wallet ${wallet.slice(0, 6)}...${wallet.slice(-4)} revoked`;
+        } catch {
+          const wallet = event.to_address;
+          if (!wallet) return 'Wallet revoked';
+          return `Wallet ${wallet.slice(0, 6)}...${wallet.slice(-4)} revoked`;
+        }
       case 'StockSplit':
+        try {
+          const data = event.data ? JSON.parse(event.data) : {};
+          const multiplier = parseInt(data.multiplier || '0');
+          if (multiplier) {
+            // Divide by 10000 base to get the actual split ratio
+            const ratio = multiplier / 10000;
+            return `${ratio}:1 Stock Split`;
+          }
+          return 'Stock Split';
+        } catch {
+          return 'Stock Split';
+        }
       case 'SymbolChanged':
+        try {
+          const data = event.data ? JSON.parse(event.data) : {};
+          const oldSymbol = data.oldSymbol || '?';
+          const newSymbol = data.newSymbol || '?';
+          return `Symbol changed from ${oldSymbol} to ${newSymbol}`;
+        } catch {
+          return 'Symbol changed';
+        }
       case 'NameChanged':
         try {
           const data = event.data ? JSON.parse(event.data) : {};
-          return JSON.stringify(data);
+          const oldName = data.oldName || '?';
+          const newName = data.newName || '?';
+          return `Name changed from "${oldName}" to "${newName}"`;
         } catch {
-          return event.data || 'N/A';
+          return 'Name changed';
         }
       case 'TransferBlocked':
-        return `Transfer blocked: ${event.from_address?.slice(0, 6)}...${event.from_address?.slice(-4)} → ${event.to_address?.slice(0, 6)}...${event.to_address?.slice(-4)}`;
+        const blockedFrom = event.from_address || '0x0000...0000';
+        const blockedTo = event.to_address || '0x0000...0000';
+        return `Transfer blocked: ${blockedFrom.slice(0, 6)}...${blockedFrom.slice(-4)} → ${blockedTo.slice(0, 6)}...${blockedTo.slice(-4)}`;
       default:
         return 'N/A';
     }
+  };
+
+  // Handle row expansion
+  const toggleRowExpansion = (eventId: number) => {
+    setExpandedEventId(expandedEventId === eventId ? null : eventId);
   };
 
   // Handle page navigation
@@ -190,6 +291,7 @@ export default function EventsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="Mint">Mints</SelectItem>
               <SelectItem value="Transfer">Transfers</SelectItem>
               <SelectItem value="WalletApproved">Wallet Approvals</SelectItem>
               <SelectItem value="WalletRevoked">Wallet Revocations</SelectItem>
@@ -212,7 +314,7 @@ export default function EventsPage() {
         <CardHeader>
           <CardTitle>Event History</CardTitle>
           <CardDescription>
-            Recent blockchain events (showing last {limit} events)
+            Recent blockchain events (showing last {limit} events). Click on any row to view raw JSON data.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -231,38 +333,73 @@ export default function EventsPage() {
                   <thead className="bg-muted/50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Time
+                        Block
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Event Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Details
+                        Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Block
+                        Gas
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {events.map((event) => (
-                      <tr key={event.id} className="hover:bg-muted/50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {formatTimestamp(event.timestamp)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEventBadge(event.event_type)}`}>
-                            {formatEventType(event.event_type)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-mono max-w-md truncate">
-                          {formatEventDetails(event)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                          {event.block_number}
-                        </td>
-                      </tr>
-                    ))}
+                    {events.map((event) => {
+                      const actualType = getActualEventType(event);
+                      const isExpanded = expandedEventId === event.id;
+                      return (
+                        <>
+                          <tr
+                            key={event.id}
+                            className="hover:bg-muted/50 cursor-pointer"
+                            onClick={() => toggleRowExpansion(event.id)}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                {event.block_number}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {formatTimestamp(event.timestamp)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEventBadge(actualType)}`}>
+                                {formatEventType(actualType)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm max-w-md truncate">
+                              {formatEventDetails(event)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                              {formatGas(event.gas_used)}
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={`${event.id}-expanded`} className="bg-muted/30">
+                              <td colSpan={5} className="px-6 py-4">
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-semibold">Raw Event Data</h4>
+                                  <pre className="bg-background p-4 rounded-md overflow-x-auto text-xs">
+                                    {JSON.stringify(event, null, 2)}
+                                  </pre>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
