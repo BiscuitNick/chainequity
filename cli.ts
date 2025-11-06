@@ -733,5 +733,118 @@ program
     }
   });
 
+// ============================================================================
+// GAS ANALYTICS COMMANDS
+// ============================================================================
+
+program
+  .command('gas')
+  .description('Show gas usage analytics and statistics')
+  .option('-t, --top <number>', 'Show top N most expensive transactions', '10')
+  .option('--by-type', 'Show gas statistics grouped by event type')
+  .action(async (options) => {
+    const spinner = ora('Analyzing gas usage...').start();
+
+    try {
+      const capTableService = new CapTableService();
+      const db = (capTableService as any).db;
+
+      spinner.stop();
+
+      // Overall statistics
+      const stats = db.getGasStatistics();
+
+      console.log(chalk.bold('\n⛽ Gas Usage Analytics\n'));
+      console.log(chalk.gray('Total Events:'), stats.eventCount);
+      console.log(chalk.gray('Total Gas Used:'), chalk.yellow(Number(stats.totalGasUsed).toLocaleString()));
+      console.log(chalk.gray('Average Gas:'), chalk.yellow(Number(stats.averageGasUsed).toLocaleString()));
+
+      // Convert total cost from wei to ETH/MATIC
+      if (stats.totalCost && BigInt(stats.totalCost) > 0n) {
+        const totalCostWei = BigInt(stats.totalCost);
+        const totalCostEther = Number(totalCostWei) / 1e18;
+        console.log(chalk.gray('Total Cost:'), chalk.yellow(totalCostEther.toFixed(8)), 'MATIC/ETH');
+      }
+
+      // Show statistics by event type if requested
+      if (options.byType) {
+        console.log(chalk.bold('\n📊 Gas by Event Type:\n'));
+
+        const statsByType = db.getGasStatisticsByType();
+
+        const typeTable = new Table({
+          head: [
+            chalk.cyan('Event Type'),
+            chalk.cyan('Count'),
+            chalk.cyan('Min Gas'),
+            chalk.cyan('Avg Gas'),
+            chalk.cyan('Max Gas'),
+            chalk.cyan('Total Gas'),
+          ],
+        });
+
+        statsByType.forEach((stat: any) => {
+          typeTable.push([
+            stat.eventType,
+            stat.count,
+            Number(stat.minGas).toLocaleString(),
+            Number(stat.avgGas).toLocaleString(),
+            Number(stat.maxGas).toLocaleString(),
+            Number(stat.totalGas).toLocaleString(),
+          ]);
+        });
+
+        console.log(typeTable.toString());
+      }
+
+      // Show most expensive transactions
+      const limit = parseInt(options.top);
+      if (!isNaN(limit) && limit > 0) {
+        console.log(chalk.bold(`\n💰 Top ${limit} Most Expensive Transactions:\n`));
+
+        const expensive = db.getMostExpensiveTransactions(limit);
+
+        if (expensive.length === 0) {
+          console.log(chalk.yellow('No gas data available yet. Run the indexer to collect gas data.'));
+        } else {
+          const expensiveTable = new Table({
+            head: [
+              chalk.cyan('Event'),
+              chalk.cyan('Gas Used'),
+              chalk.cyan('Gas Price (Gwei)'),
+              chalk.cyan('Cost (MATIC)'),
+              chalk.cyan('TX Hash'),
+            ],
+          });
+
+          expensive.forEach((tx: any) => {
+            const costWei = BigInt(tx.cost);
+            const costEther = (Number(costWei) / 1e18).toFixed(8);
+            const gasPriceGwei = (Number(tx.gasPrice) / 1e9).toFixed(2);
+
+            expensiveTable.push([
+              tx.eventType,
+              Number(tx.gasUsed).toLocaleString(),
+              gasPriceGwei,
+              costEther,
+              tx.transactionHash.substring(0, 10) + '...',
+            ]);
+          });
+
+          console.log(expensiveTable.toString());
+        }
+      }
+
+      console.log(chalk.gray('\n💡 Tips:'));
+      console.log(chalk.gray('  Group by event type: npm run cli gas --by-type'));
+      console.log(chalk.gray('  Show top 20 transactions: npm run cli gas --top 20'));
+      console.log(chalk.gray('  Run indexer to collect gas data: npm run indexer'));
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to calculate gas analytics'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
 // Parse arguments
 program.parse();

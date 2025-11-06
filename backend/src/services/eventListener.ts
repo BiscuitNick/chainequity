@@ -114,7 +114,12 @@ export class EventListenerService {
    */
   private async handleTransferEvent(log: any): Promise<void> {
     try {
-      const block = await this.alchemy.core.getBlock(log.blockNumber);
+      // Fetch block and transaction receipt in parallel
+      const [block, receipt] = await Promise.all([
+        this.alchemy.core.getBlock(log.blockNumber),
+        this.alchemy.core.getTransactionReceipt(log.transactionHash),
+      ]);
+
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
 
       // Decode event data
@@ -127,7 +132,13 @@ export class EventListenerService {
       const to = decoded.args[1];
       const value = decoded.args[2].toString();
 
-      // Store event in database
+      // Extract gas data from receipt
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.effectiveGasPrice
+        ? receipt.effectiveGasPrice.toString()
+        : null;
+
+      // Store event in database with gas data
       this.db.insertEvent({
         block_number: log.blockNumber,
         transaction_hash: log.transactionHash,
@@ -136,13 +147,17 @@ export class EventListenerService {
         to_address: to,
         amount: value,
         data: JSON.stringify({ from, to, value }),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp,
       });
 
       // Update balances
       this.updateBalances(from, to, log.blockNumber, timestamp);
 
-      console.log(`Transfer event processed: ${from} -> ${to} (${value})`);
+      console.log(
+        `Transfer event processed: ${from} -> ${to} (${value}) [Gas: ${gasUsed}]`
+      );
     } catch (error) {
       console.error('Error handling Transfer event:', error);
     }
@@ -153,7 +168,11 @@ export class EventListenerService {
    */
   private async handleWalletApprovedEvent(log: any): Promise<void> {
     try {
-      const block = await this.alchemy.core.getBlock(log.blockNumber);
+      const [block, receipt] = await Promise.all([
+        this.alchemy.core.getBlock(log.blockNumber),
+        this.alchemy.core.getTransactionReceipt(log.transactionHash),
+      ]);
+
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
 
       const iface = new this.alchemy.utils.Interface(ChainEquityTokenABI);
@@ -163,16 +182,23 @@ export class EventListenerService {
 
       const wallet = decoded.args[0];
 
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.effectiveGasPrice
+        ? receipt.effectiveGasPrice.toString()
+        : null;
+
       this.db.insertEvent({
         block_number: log.blockNumber,
         transaction_hash: log.transactionHash,
         event_type: 'WalletApproved',
         to_address: wallet,
         data: JSON.stringify({ wallet }),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp,
       });
 
-      console.log(`WalletApproved event processed: ${wallet}`);
+      console.log(`WalletApproved event processed: ${wallet} [Gas: ${gasUsed}]`);
     } catch (error) {
       console.error('Error handling WalletApproved event:', error);
     }
@@ -183,7 +209,11 @@ export class EventListenerService {
    */
   private async handleWalletRevokedEvent(log: any): Promise<void> {
     try {
-      const block = await this.alchemy.core.getBlock(log.blockNumber);
+      const [block, receipt] = await Promise.all([
+        this.alchemy.core.getBlock(log.blockNumber),
+        this.alchemy.core.getTransactionReceipt(log.transactionHash),
+      ]);
+
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
 
       const iface = new this.alchemy.utils.Interface(ChainEquityTokenABI);
@@ -193,16 +223,23 @@ export class EventListenerService {
 
       const wallet = decoded.args[0];
 
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.effectiveGasPrice
+        ? receipt.effectiveGasPrice.toString()
+        : null;
+
       this.db.insertEvent({
         block_number: log.blockNumber,
         transaction_hash: log.transactionHash,
         event_type: 'WalletRevoked',
         from_address: wallet,
         data: JSON.stringify({ wallet }),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp,
       });
 
-      console.log(`WalletRevoked event processed: ${wallet}`);
+      console.log(`WalletRevoked event processed: ${wallet} [Gas: ${gasUsed}]`);
     } catch (error) {
       console.error('Error handling WalletRevoked event:', error);
     }
@@ -213,7 +250,11 @@ export class EventListenerService {
    */
   private async handleStockSplitEvent(log: any): Promise<void> {
     try {
-      const block = await this.alchemy.core.getBlock(log.blockNumber);
+      const [block, receipt] = await Promise.all([
+        this.alchemy.core.getBlock(log.blockNumber),
+        this.alchemy.core.getTransactionReceipt(log.transactionHash),
+      ]);
+
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
 
       const iface = new this.alchemy.utils.Interface(ChainEquityTokenABI);
@@ -224,11 +265,18 @@ export class EventListenerService {
       const multiplier = decoded.args[0].toString();
       const newSplitMultiplier = decoded.args[1].toString();
 
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.effectiveGasPrice
+        ? receipt.effectiveGasPrice.toString()
+        : null;
+
       this.db.insertEvent({
         block_number: log.blockNumber,
         transaction_hash: log.transactionHash,
         event_type: 'StockSplit',
         data: JSON.stringify({ multiplier, newSplitMultiplier }),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp,
       });
 
@@ -245,7 +293,9 @@ export class EventListenerService {
       // Update metadata
       this.db.setMetadata('split_multiplier', newSplitMultiplier);
 
-      console.log(`StockSplit event processed: ${multiplier}x -> ${newSplitMultiplier}`);
+      console.log(
+        `StockSplit event processed: ${multiplier}x -> ${newSplitMultiplier} [Gas: ${gasUsed}]`
+      );
     } catch (error) {
       console.error('Error handling StockSplit event:', error);
     }
@@ -256,7 +306,11 @@ export class EventListenerService {
    */
   private async handleSymbolChangedEvent(log: any): Promise<void> {
     try {
-      const block = await this.alchemy.core.getBlock(log.blockNumber);
+      const [block, receipt] = await Promise.all([
+        this.alchemy.core.getBlock(log.blockNumber),
+        this.alchemy.core.getTransactionReceipt(log.transactionHash),
+      ]);
+
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
 
       const iface = new this.alchemy.utils.Interface(ChainEquityTokenABI);
@@ -267,11 +321,18 @@ export class EventListenerService {
       const oldSymbol = decoded.args[0];
       const newSymbol = decoded.args[1];
 
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.effectiveGasPrice
+        ? receipt.effectiveGasPrice.toString()
+        : null;
+
       this.db.insertEvent({
         block_number: log.blockNumber,
         transaction_hash: log.transactionHash,
         event_type: 'SymbolChanged',
         data: JSON.stringify({ oldSymbol, newSymbol }),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp,
       });
 
@@ -285,7 +346,7 @@ export class EventListenerService {
         timestamp,
       });
 
-      console.log(`SymbolChanged event processed: ${oldSymbol} -> ${newSymbol}`);
+      console.log(`SymbolChanged event processed: ${oldSymbol} -> ${newSymbol} [Gas: ${gasUsed}]`);
     } catch (error) {
       console.error('Error handling SymbolChanged event:', error);
     }
@@ -296,7 +357,11 @@ export class EventListenerService {
    */
   private async handleNameChangedEvent(log: any): Promise<void> {
     try {
-      const block = await this.alchemy.core.getBlock(log.blockNumber);
+      const [block, receipt] = await Promise.all([
+        this.alchemy.core.getBlock(log.blockNumber),
+        this.alchemy.core.getTransactionReceipt(log.transactionHash),
+      ]);
+
       const timestamp = block?.timestamp || Math.floor(Date.now() / 1000);
 
       const iface = new this.alchemy.utils.Interface(ChainEquityTokenABI);
@@ -307,11 +372,18 @@ export class EventListenerService {
       const oldName = decoded.args[0];
       const newName = decoded.args[1];
 
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.effectiveGasPrice
+        ? receipt.effectiveGasPrice.toString()
+        : null;
+
       this.db.insertEvent({
         block_number: log.blockNumber,
         transaction_hash: log.transactionHash,
         event_type: 'NameChanged',
         data: JSON.stringify({ oldName, newName }),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp,
       });
 
@@ -325,7 +397,7 @@ export class EventListenerService {
         timestamp,
       });
 
-      console.log(`NameChanged event processed: ${oldName} -> ${newName}`);
+      console.log(`NameChanged event processed: ${oldName} -> ${newName} [Gas: ${gasUsed}]`);
     } catch (error) {
       console.error('Error handling NameChanged event:', error);
     }

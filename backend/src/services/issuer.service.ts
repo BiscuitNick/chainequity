@@ -485,7 +485,9 @@ export class IssuerService {
  * Create IssuerService instance from environment variables
  */
 export function createIssuerService(): IssuerService {
-  const rpcUrl = `https://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`;
+  const rpcUrl = config.useLocalNetwork
+    ? config.localRpcUrl
+    : `https://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`;
 
   const privateKey = process.env.ISSUER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
   if (!privateKey) {

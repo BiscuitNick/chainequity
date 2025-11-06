@@ -22,6 +22,8 @@ interface ProcessedEvent {
   toAddress?: string;
   value?: string;
   data: any;
+  gasUsed?: string;
+  gasPrice?: string;
   timestamp?: number;
 }
 
@@ -504,11 +506,25 @@ export class IndexerService {
    */
   private async saveEvent(event: ProcessedEvent): Promise<void> {
     try {
-      // Get block timestamp if available
-      if (!event.timestamp && this.wsProvider) {
-        const block = await this.wsProvider.getBlock(event.blockNumber);
-        event.timestamp = block?.timestamp;
+      const provider = this.wsProvider || this.httpProvider;
+      if (!provider) {
+        throw new Error('No provider available');
       }
+
+      // Fetch block and transaction receipt in parallel
+      const [block, receipt] = await Promise.all([
+        event.timestamp ? Promise.resolve(null) : provider.getBlock(event.blockNumber),
+        provider.getTransactionReceipt(event.transactionHash),
+      ]);
+
+      // Set timestamp if not already set
+      if (!event.timestamp && block) {
+        event.timestamp = block.timestamp;
+      }
+
+      // Extract gas data from receipt
+      const gasUsed = receipt?.gasUsed ? receipt.gasUsed.toString() : null;
+      const gasPrice = receipt?.gasPrice ? receipt.gasPrice.toString() : null;
 
       this.db.insertEvent({
         event_type: event.eventType as any,
@@ -518,10 +534,12 @@ export class IndexerService {
         to_address: event.toAddress || null,
         amount: event.value || null,
         data: JSON.stringify(event.data),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp: event.timestamp || 0,
       });
 
-      console.log(`   ✅ Event saved to database`);
+      console.log(`   ✅ Event saved to database [Gas: ${gasUsed}]`);
     } catch (error) {
       console.error('Failed to save event:', error);
       throw error;

@@ -11,6 +11,8 @@ export interface Event {
   to_address?: string | null;
   amount?: string | null;
   data?: string | null; // JSON string
+  gas_used?: string | null; // Gas consumed by transaction
+  gas_price?: string | null; // Effective gas price in wei
   timestamp: number;
   created_at?: number;
 }

@@ -110,7 +110,7 @@ export class CapTableService {
       return {
         address: balance.address,
         balance: balance.balance,
-        balanceFormatted: ethers.formatEther(balanceBigInt),
+        balanceFormatted: ethers.formatEther(balanceBigInt), // Raw value, frontend applies multiplier
         ownershipPercentage,
         lastUpdated: balance.last_updated_timestamp || undefined,
       };
@@ -128,7 +128,7 @@ export class CapTableService {
     return {
       entries,
       totalSupply: totalSupply.toString(),
-      totalSupplyFormatted: ethers.formatEther(totalSupply),
+      totalSupplyFormatted: ethers.formatEther(totalSupply), // Raw value, frontend applies multiplier
       holderCount: entries.length,
       splitMultiplier,
       generatedAt: Date.now(),
@@ -436,7 +436,7 @@ export class CapTableService {
    * @param address - Address to query
    * @param fromBlock - Start block (optional)
    * @param toBlock - End block (optional)
-   * @returns Array of balance changes
+   * @returns Array of balance changes with running balances
    */
   getBalanceChanges(
     address: string,
@@ -447,16 +447,28 @@ export class CapTableService {
     transactionHash: string;
     eventType: string;
     balanceChange: string;
+    balanceChangeRaw: string;
+    newBalance: string;
+    direction: 'in' | 'out' | 'neutral';
+    transactionType: 'Mint' | 'Transfer Received' | 'Transfer Sent' | 'Self Transfer';
+    gasUsed?: string;
+    gasPrice?: string;
     timestamp?: number;
   }> {
     console.log(`\n📊 Getting balance changes for ${address}...`);
 
     const addressLower = address.toLowerCase();
 
+    // Get current split multiplier
+    const splitMultiplierStr = this.db.getMetadata('split_multiplier');
+    const splitMultiplierBP = splitMultiplierStr ? parseInt(splitMultiplierStr) : 10000;
+    const splitMultiplier = BigInt(splitMultiplierBP);
+
     // Get all transfer events involving this address
     const allEvents = this.db.getEventsByType('Transfer');
 
-    const balanceChanges = allEvents
+    // Filter and sort events
+    const filteredEvents = allEvents
       .filter((event) => {
         // Filter by address
         const isFrom = event.from_address?.toLowerCase() === addressLower;
@@ -470,31 +482,65 @@ export class CapTableService {
 
         return true;
       })
-      .map((event) => {
-        const isFrom = event.from_address?.toLowerCase() === addressLower;
-        const isTo = event.to_address?.toLowerCase() === addressLower;
+      .sort((a, b) => a.block_number - b.block_number);
 
-        let balanceChange = BigInt(event.amount || '0');
+    // Calculate running balance and process events
+    let runningBalance = BigInt(0);
+    const balanceChanges = filteredEvents.map((event) => {
+      const isFrom = event.from_address?.toLowerCase() === addressLower;
+      const isTo = event.to_address?.toLowerCase() === addressLower;
+      const isMint =
+        !event.from_address ||
+        event.from_address === '0x0000000000000000000000000000000000000000' ||
+        event.from_address === ethers.ZeroAddress;
 
-        // If sender, it's a negative change
-        if (isFrom && !isTo) {
-          balanceChange = -balanceChange;
+      let balanceChange = BigInt(event.amount || '0');
+      let direction: 'in' | 'out' | 'neutral' = 'neutral';
+      let transactionType: 'Mint' | 'Transfer Received' | 'Transfer Sent' | 'Self Transfer';
+
+      // Determine transaction type and direction
+      if (isFrom && isTo) {
+        // Self-transfer
+        balanceChange = BigInt(0);
+        direction = 'neutral';
+        transactionType = 'Self Transfer';
+      } else if (isFrom && !isTo) {
+        // Outgoing transfer (sender)
+        balanceChange = -balanceChange;
+        direction = 'out';
+        transactionType = 'Transfer Sent';
+      } else if (isTo && !isFrom) {
+        // Incoming transfer or mint
+        direction = 'in';
+        if (isMint) {
+          transactionType = 'Mint';
+        } else {
+          transactionType = 'Transfer Received';
         }
-        // If both (self-transfer), no change
-        else if (isFrom && isTo) {
-          balanceChange = BigInt(0);
-        }
-        // If receiver, it's a positive change (already positive)
+      } else {
+        // Default case (should not happen)
+        transactionType = 'Transfer Received';
+      }
 
-        return {
-          blockNumber: event.block_number,
-          transactionHash: event.transaction_hash,
-          eventType: event.event_type,
-          balanceChange: ethers.formatEther(balanceChange),
-          timestamp: event.timestamp || undefined,
-        };
-      })
-      .sort((a, b) => a.blockNumber - b.blockNumber);
+      // Update running balance
+      runningBalance += balanceChange;
+
+      // Return raw values - frontend will apply current split multiplier
+      return {
+        blockNumber: event.block_number,
+        transactionHash: event.transaction_hash,
+        eventType: event.event_type,
+        balanceChange: ethers.formatEther(balanceChange),
+        balanceChangeRaw: balanceChange.toString(),
+        newBalance: ethers.formatEther(runningBalance),
+        newBalanceRaw: runningBalance.toString(),
+        direction,
+        transactionType,
+        gasUsed: event.gas_used || undefined,
+        gasPrice: event.gas_price || undefined,
+        timestamp: event.timestamp || undefined,
+      };
+    });
 
     console.log(`   Found ${balanceChanges.length} balance changes`);
     console.log('✅ Balance changes retrieved\n');

@@ -33,6 +33,7 @@ interface BalanceHistory {
   balanceChange: string;
   balanceChangeRaw: string;
   newBalance: string;
+  newBalanceRaw?: string;
   direction: 'in' | 'out' | 'neutral';
   transactionType: 'Mint' | 'Transfer Received' | 'Transfer Sent' | 'Self Transfer';
   eventType: string;
@@ -190,10 +191,13 @@ export default function CapTablePage() {
     }
   };
 
-  // Format balance for display
+  // Format balance for display (split multiplier already applied by the contract)
   const formatBalance = (balance: string) => {
     try {
-      return parseFloat(formatUnits(BigInt(balance), decimals)).toFixed(2);
+      // The balance from the API already has the split multiplier applied
+      // because the indexer calls contract.balanceOf() which includes the multiplier
+      const rawValue = parseFloat(formatUnits(BigInt(balance), decimals));
+      return rawValue.toFixed(2);
     } catch {
       return '0.00';
     }
@@ -430,7 +434,7 @@ export default function CapTablePage() {
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-border">
-                                        {holderDetails.get(holder.address)?.balanceHistory.map((history, idx) => {
+                                        {holderDetails.get(holder.address)?.balanceHistory.map((history, idx, array) => {
                                           const isPositive = history.direction === 'in';
                                           const isNegative = history.direction === 'out';
                                           const changeColor = isPositive
@@ -438,7 +442,7 @@ export default function CapTablePage() {
                                             : isNegative
                                             ? 'text-red-600 dark:text-red-400'
                                             : 'text-muted-foreground';
-                                          const prefix = isPositive ? '+' : '';
+                                          const prefix = isPositive ? '+' : isNegative ? '-' : '';
 
                                           // Safe gas cost calculation
                                           let gasCost: string | null = null;
@@ -451,28 +455,34 @@ export default function CapTablePage() {
                                             gasCost = null;
                                           }
 
-                                          // Safe balance change parsing
-                                          const balanceChange = history.balanceChange && !isNaN(parseFloat(history.balanceChange))
-                                            ? parseFloat(history.balanceChange).toFixed(2)
-                                            : '0.00';
+                                          // Apply split multiplier to balance change
+                                          // Transfer events store raw amounts, so we need to apply the multiplier
+                                          const multiplier = Number(splitMultiplier) / 10000; // Convert from basis points (10000 = 1.0x)
+                                          const rawBalanceChange = parseFloat(history.balanceChange) || 0;
+                                          const adjustedBalanceChange = Math.abs(rawBalanceChange * multiplier);
+                                          const balanceChange = adjustedBalanceChange.toFixed(2);
 
-                                          // Safe new balance parsing
-                                          const newBalance = history.newBalance && !isNaN(parseFloat(history.newBalance))
-                                            ? parseFloat(history.newBalance).toFixed(2)
-                                            : '0.00';
+                                          // Calculate cumulative balance
+                                          // Sum up all balance changes from the beginning up to and including this transaction
+                                          let cumulativeBalance = 0;
+                                          for (let i = 0; i <= idx; i++) {
+                                            const change = parseFloat(array[i].balanceChange) || 0;
+                                            cumulativeBalance += change;
+                                          }
+                                          const newBalance = (cumulativeBalance * multiplier).toFixed(2);
 
                                           return (
                                             <tr key={idx}>
                                               <td className="px-4 py-2">{history.blockNumber}</td>
                                               <td className="px-4 py-2">{formatTimestamp(history.timestamp || 0)}</td>
                                               <td className="px-4 py-2">
-                                                <span className="text-xs font-medium">{history.transactionType}</span>
+                                                <span className="text-xs font-medium">{history.eventType || history.transactionType}</span>
                                               </td>
                                               <td className={`px-4 py-2 font-mono font-semibold ${changeColor}`}>
-                                                {prefix}{balanceChange} {symbol}
+                                                {prefix}{balanceChange}
                                               </td>
                                               <td className="px-4 py-2 font-mono">
-                                                {newBalance} {symbol}
+                                                {newBalance}
                                               </td>
                                               <td className="px-4 py-2 text-xs text-muted-foreground">
                                                 {history.gasUsed ? (
