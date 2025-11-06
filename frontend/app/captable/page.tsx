@@ -191,13 +191,15 @@ export default function CapTablePage() {
     }
   };
 
-  // Format balance for display (split multiplier already applied by the contract)
+  // Format balance for display (apply split multiplier to raw balance)
   const formatBalance = (balance: string) => {
     try {
-      // The balance from the API already has the split multiplier applied
-      // because the indexer calls contract.balanceOf() which includes the multiplier
+      // The balance from the API is RAW (without split multiplier)
+      // Apply the split multiplier for display
       const rawValue = parseFloat(formatUnits(BigInt(balance), decimals));
-      return rawValue.toFixed(2);
+      const multiplier = Number(splitMultiplier) / 10000; // Convert from basis points (10000 = 1.0x)
+      const adjustedValue = rawValue * multiplier;
+      return adjustedValue.toFixed(2);
     } catch {
       return '0.00';
     }

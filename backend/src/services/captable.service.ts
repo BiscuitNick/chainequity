@@ -203,21 +203,26 @@ export class CapTableService {
       (event) => event.event_type === 'StockSplit' && event.block_number <= blockNumber
     );
 
-    let splitMultiplier = 1;
+    let splitMultiplierBP = 10000; // Default: 10000 basis points = 1.0x
     if (splitEvents.length > 0) {
       // Get the most recent split event
       const latestSplit = splitEvents[splitEvents.length - 1];
       if (latestSplit.data) {
         try {
           const splitData = JSON.parse(latestSplit.data);
-          splitMultiplier = parseFloat(splitData.newSplitMultiplier || '1');
+          // newSplitMultiplier is stored in basis points (e.g., 20000 for 2.0x)
+          splitMultiplierBP = parseInt(splitData.newSplitMultiplier || '10000');
         } catch (error) {
           console.warn('Failed to parse split data:', error);
         }
       }
     }
 
+    // Convert to decimal for metadata (10000 BP = 1.0x, 20000 BP = 2.0x)
+    const splitMultiplier = splitMultiplierBP / 10000;
+
     // Filter out zero balances and convert to entries
+    // Store RAW balances without applying split multiplier (frontend will apply it)
     const entries: CapTableEntry[] = [];
     let totalSupply = BigInt(0);
 

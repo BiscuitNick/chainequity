@@ -555,18 +555,27 @@ export class IndexerService {
     }
 
     try {
-      const balance = await this.contract.balanceOf(address);
+      // Get balance from contract (includes split multiplier)
+      const balanceWithMultiplier = await this.contract.balanceOf(address);
+
+      // Get current split multiplier to divide it out
+      const splitMultiplier = await this.contract.splitMultiplier();
+
+      // Calculate raw balance: (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier
+      // This reverses the contract's balanceOf calculation
+      const BASIS_POINTS = 10000n;
+      const rawBalance = (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier;
 
       const currentBlock = this.wsProvider ? await this.wsProvider.getBlockNumber() : 0;
 
       this.db.upsertBalance({
         address: address.toLowerCase(),
-        balance: balance.toString(),
+        balance: rawBalance.toString(),
         last_updated_block: currentBlock,
         last_updated_timestamp: Date.now(),
       });
 
-      console.log(`   💰 Updated balance for ${address}: ${ethers.formatEther(balance)}`);
+      console.log(`   💰 Updated balance for ${address}: ${ethers.formatEther(rawBalance)} (raw)`);
     } catch (error) {
       console.error(`Failed to update balance for ${address}:`, error);
     }

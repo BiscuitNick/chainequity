@@ -350,23 +350,33 @@ export class AutoIndexerService {
         });
 
         // Update balances
-        if (from !== ethers.ZeroAddress && this.contract) {
-          const balance = await this.contract.balanceOf(from);
-          this.db.upsertBalance({
-            address: from.toLowerCase(),
-            balance: balance.toString(),
-            last_updated_block: event.blockNumber,
-            last_updated_timestamp: Date.now(),
-          });
-        }
-        if (to !== ethers.ZeroAddress && this.contract) {
-          const balance = await this.contract.balanceOf(to);
-          this.db.upsertBalance({
-            address: to.toLowerCase(),
-            balance: balance.toString(),
-            last_updated_block: event.blockNumber,
-            last_updated_timestamp: Date.now(),
-          });
+        if (this.contract) {
+          // Get current split multiplier to divide it out
+          const splitMultiplier = await this.contract.splitMultiplier();
+          const BASIS_POINTS = 10000n;
+
+          if (from !== ethers.ZeroAddress) {
+            const balanceWithMultiplier = await this.contract.balanceOf(from);
+            // Store raw balance: (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier
+            const rawBalance = (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier;
+            this.db.upsertBalance({
+              address: from.toLowerCase(),
+              balance: rawBalance.toString(),
+              last_updated_block: event.blockNumber,
+              last_updated_timestamp: Date.now(),
+            });
+          }
+          if (to !== ethers.ZeroAddress) {
+            const balanceWithMultiplier = await this.contract.balanceOf(to);
+            // Store raw balance: (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier
+            const rawBalance = (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier;
+            this.db.upsertBalance({
+              address: to.toLowerCase(),
+              balance: rawBalance.toString(),
+              last_updated_block: event.blockNumber,
+              last_updated_timestamp: Date.now(),
+            });
+          }
         }
       } else if (eventName === 'WalletApproved' && event.args) {
         const [wallet] = event.args;

@@ -419,12 +419,18 @@ export class EventListenerService {
         ChainEquityTokenABI
       );
 
+      // Get current split multiplier to divide it out
+      const splitMultiplier = await contract.splitMultiplier();
+      const BASIS_POINTS = 10000n;
+
       // Update sender balance (if not minting)
       if (from !== '0x0000000000000000000000000000000000000000') {
-        const fromBalance = await contract.balanceOf(from);
+        const fromBalanceWithMultiplier = await contract.balanceOf(from);
+        // Store raw balance: (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier
+        const fromRawBalance = (fromBalanceWithMultiplier * BASIS_POINTS) / splitMultiplier;
         this.db.upsertBalance({
           address: from,
-          balance: fromBalance.toString(),
+          balance: fromRawBalance.toString(),
           last_updated_block: blockNumber,
           last_updated_timestamp: timestamp,
         });
@@ -432,10 +438,12 @@ export class EventListenerService {
 
       // Update recipient balance (if not burning)
       if (to !== '0x0000000000000000000000000000000000000000') {
-        const toBalance = await contract.balanceOf(to);
+        const toBalanceWithMultiplier = await contract.balanceOf(to);
+        // Store raw balance: (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier
+        const toRawBalance = (toBalanceWithMultiplier * BASIS_POINTS) / splitMultiplier;
         this.db.upsertBalance({
           address: to,
-          balance: toBalance.toString(),
+          balance: toRawBalance.toString(),
           last_updated_block: blockNumber,
           last_updated_timestamp: timestamp,
         });
