@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
+
   // Turbopack configuration for Web3 compatibility
   turbopack: {
     resolveAlias: {

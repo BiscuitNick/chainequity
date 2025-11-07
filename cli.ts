@@ -14,8 +14,8 @@ import Table from 'cli-table3';
 import ora from 'ora';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
-import { IssuerService } from './backend/src/services/issuer.service.js';
-import { CapTableService } from './backend/src/services/captable.service.js';
+import { IssuerService } from './dist/services/issuer.service.js';
+import { CapTableService } from './dist/services/captable.service.js';
 import fs from 'fs';
 
 // Load environment
@@ -28,9 +28,13 @@ program.name('chainequity').description('ChainEquity Token Management CLI').vers
 
 // Helper: Get network configuration
 function getNetworkConfig(network: string = 'localhost') {
+  // Check if we should use local network from environment
+  const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';
+  const localRpcUrl = process.env.LOCAL_RPC_URL || 'http://127.0.0.1:8545';
+
   const configs: Record<string, { rpcUrl: string; wsUrl?: string }> = {
     localhost: {
-      rpcUrl: 'http://127.0.0.1:8545',
+      rpcUrl: useLocalNetwork ? localRpcUrl : 'http://127.0.0.1:8545',
     },
     polygonAmoy: {
       rpcUrl: process.env.ALCHEMY_API_KEY

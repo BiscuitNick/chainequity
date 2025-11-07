@@ -19,8 +19,12 @@ if (!alchemyApiKey) {
 }
 
 // Determine which chains to use based on environment
-const isDevelopment = process.env.NODE_ENV === 'development';
-const chains = (isDevelopment ? [hardhat, polygonAmoy] : [polygonAmoy]) as any;
+// Use hardhat chain if RPC_URL is set to localhost/hardhat
+const useLocalNetwork = process.env.NEXT_PUBLIC_RPC_URL?.includes('localhost') ||
+                        process.env.NEXT_PUBLIC_RPC_URL?.includes('127.0.0.1') ||
+                        process.env.NEXT_PUBLIC_RPC_URL?.includes('hardhat') ||
+                        process.env.NODE_ENV === 'development';
+const chains = (useLocalNetwork ? [hardhat, polygonAmoy] : [polygonAmoy]) as any;
 
 // Configure wagmi with RainbowKit
 export const config = getDefaultConfig({
@@ -28,7 +32,7 @@ export const config = getDefaultConfig({
   projectId: walletConnectProjectId,
   chains,
   transports: {
-    [hardhat.id]: http('http://127.0.0.1:8545'),
+    [hardhat.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'http://localhost:8545'),
     [polygonAmoy.id]: http(
       alchemyApiKey
         ? `https://polygon-amoy.g.alchemy.com/v2/${alchemyApiKey}`

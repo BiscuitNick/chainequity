@@ -19,9 +19,8 @@ import type {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Get the project root (go up from backend/src/db/)
-const PROJECT_ROOT = resolve(__dirname, '../../..');
-const DEFAULT_DB_PATH = join(PROJECT_ROOT, 'backend/data/chainequity.db');
+// Use environment variable for database path, or fall back to relative path
+const DEFAULT_DB_PATH = process.env.DATABASE_PATH || './data/chainequity.db';
 
 export class DatabaseService {
   private static instance: DatabaseService;

@@ -1,0 +1,179 @@
+services:
+  # ============================================
+  # Hardhat Local Blockchain
+  # ============================================
+  hardhat:
+    build:
+      context: .
+      dockerfile: Dockerfile.hardhat
+    container_name: chainequity-hardhat
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+    environment:
+      # Deployer configuration (using Hardhat test account #0 for local development)
+      - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
+    volumes:
+      # Persist blockchain data
+      - hardhat-data:/app/data
+      # Share .env file with contract addresses
+      - shared-env:/shared
+    networks:
+      - chainequity-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================
+  # ChainEquity API Server
+  # ============================================
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: chainequity-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      # Server Configuration
+      - PORT=4000
+      - NODE_ENV=development
+
+      # Local Network Configuration
+      - USE_LOCAL_NETWORK=true
+      - LOCAL_RPC_URL=http://hardhat:8545
+
+      # Alchemy Configuration (not used in local mode)
+      - ALCHEMY_API_KEY=${ALCHEMY_API_KEY:-demo}
+      - ALCHEMY_NETWORK=polygon-amoy
+
+      # Contract Configuration (will be set by Hardhat deployment)
+      - TOKEN_CONTRACT_ADDRESS=${TOKEN_CONTRACT_ADDRESS}
+
+      # Issuer Configuration
+      - ISSUER_PRIVATE_KEY=${ISSUER_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
+      - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
+
+      # Database Configuration
+      - DATABASE_PATH=/app/data/chainequity.db
+    volumes:
+      # Persistent database storage
+      - chainequity-data:/app/data
+    depends_on:
+      hardhat:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chainequity-network
+
+  # ============================================
+  # ChainEquity Event Indexer
+  # ============================================
+  indexer:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: chainequity-indexer
+    restart: unless-stopped
+    environment:
+      # Local Network Configuration
+      - USE_LOCAL_NETWORK=true
+      - LOCAL_RPC_URL=http://hardhat:8545
+
+      # Alchemy Configuration (not used in local mode)
+      - ALCHEMY_API_KEY=${ALCHEMY_API_KEY:-demo}
+      - ALCHEMY_NETWORK=polygon-amoy
+
+      # Contract Configuration
+      - TOKEN_CONTRACT_ADDRESS=${TOKEN_CONTRACT_ADDRESS}
+
+      # Database Configuration
+      - DATABASE_PATH=/app/data/chainequity.db
+
+      # Node Environment
+      - NODE_ENV=development
+    volumes:
+      # Share the same database with API server
+      - chainequity-data:/app/data
+    depends_on:
+      hardhat:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - chainequity-network
+    command: node dist/watch-indexer.js
+
+  # ============================================
+  # ChainEquity Frontend (Next.js)
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_CONTRACT_ADDRESS: ${TOKEN_CONTRACT_ADDRESS:-0x5FbDB2315678afecb367f032d93F642f64180aa3}
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+        NEXT_PUBLIC_RPC_URL: http://localhost:8545
+        NEXT_PUBLIC_ALCHEMY_API_KEY: ${ALCHEMY_API_KEY:-demo}
+    container_name: chainequity-frontend
+    restart: unless-stopped
+    ports:
+      - "3050:3000"
+    environment:
+      # Backend API URL (browser accessible)
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+
+      # Local Hardhat RPC URL
+      - NEXT_PUBLIC_RPC_URL=http://localhost:8545
+
+      # Contract address (will be set by Hardhat deployment)
+      - NEXT_PUBLIC_CONTRACT_ADDRESS=${TOKEN_CONTRACT_ADDRESS}
+
+      # Alchemy API key (optional for local development)
+      - NEXT_PUBLIC_ALCHEMY_API_KEY=${ALCHEMY_API_KEY:-demo}
+
+      # WalletConnect (optional)
+      - NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${WALLETCONNECT_PROJECT_ID:-demo}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chainequity-network
+
+# ============================================
+# Named Volumes
+# ============================================
+volumes:
+  chainequity-data:
+    driver: local
+    name: chainequity-db-data
+  hardhat-data:
+    driver: local
+    name: chainequity-hardhat-data
+  shared-env:
+    driver: local
+    name: chainequity-shared-env
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  chainequity-network:
+    driver: bridge
+    name: chainequity-network

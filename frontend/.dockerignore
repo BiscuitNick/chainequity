@@ -1,0 +1,35 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Next.js build output
+.next
+out
+
+# Development files
+.env
+.env*.local
+.env.local
+.env.development
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+.nyc_output

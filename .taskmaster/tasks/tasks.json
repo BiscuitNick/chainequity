@@ -692,7 +692,7 @@
           "8",
           "9"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -866,7 +866,7 @@
               1
             ],
             "details": "Create Docker configurations for the issuer service, indexer service, and corporate actions service if cloud deployment is desired. Set up Docker Compose file to orchestrate all services with proper networking. Configure persistent SQLite storage with volume mounts to ensure data persistence across container restarts. Set up comprehensive environment variables including Alchemy API keys, contract addresses from deployment, and database paths. For local deployment, ensure all services can run directly with npm scripts. Document both local and containerized deployment options with clear instructions for switching between them.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test Docker container builds successfully, verify services start and connect to contract, validate SQLite persistence across container restarts, ensure environment variables are properly injected",
             "parentId": "undefined"
           },
@@ -1102,7 +1102,7 @@
       ],
       "created": "2025-11-05T22:01:04.500Z",
       "description": "Tasks for master context",
-      "updated": "2025-11-07T00:17:11.118Z"
+      "updated": "2025-11-07T01:30:13.350Z"
     }
   }
 }

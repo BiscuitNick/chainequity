@@ -66,13 +66,14 @@ export class AutoIndexerService {
   }
 
   /**
-   * Check if URL is localhost
+   * Check if URL is localhost or local Docker network
    */
   private isLocalhost(url: string): boolean {
     return (
       url.includes('localhost') ||
       url.includes('127.0.0.1') ||
-      url.includes('0.0.0.0')
+      url.includes('0.0.0.0') ||
+      url.includes('hardhat') // Allow Docker service name
     );
   }
 
