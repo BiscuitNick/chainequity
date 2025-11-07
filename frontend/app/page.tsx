@@ -88,8 +88,8 @@ export default function Home() {
 
         <SectionWrapper
           id="mint"
-          title="Mint Tokens"
-          description="Create new tokens and send them to approved addresses"
+          title="Token Operations"
+          description="Mint new tokens or transfer tokens between approved addresses"
         >
           <MintSection />
         </SectionWrapper>

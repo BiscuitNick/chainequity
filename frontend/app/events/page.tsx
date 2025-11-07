@@ -40,7 +40,7 @@ interface Event {
 
 export default function EventsPage() {
   const { isConnected } = useAccount();
-  const { symbol, decimals } = useTokenInfo();
+  const { symbol, decimals, splitMultiplier } = useTokenInfo();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -96,11 +96,16 @@ export default function EventsPage() {
     return new Date(timestamp * 1000).toLocaleString();
   };
 
-  // Format amount
+  // Format amount (apply split multiplier to raw amount)
   const formatAmount = (amount: string | null) => {
     if (!amount) return 'N/A';
     try {
-      return parseFloat(formatUnits(BigInt(amount), decimals)).toFixed(2);
+      // The amount from the API is RAW (without split multiplier)
+      // Apply the split multiplier for display
+      const rawValue = parseFloat(formatUnits(BigInt(amount), decimals));
+      const multiplier = Number(splitMultiplier) / 10000; // Convert from basis points (10000 = 1.0x)
+      const adjustedValue = rawValue * multiplier;
+      return adjustedValue.toFixed(2);
     } catch {
       return 'N/A';
     }
