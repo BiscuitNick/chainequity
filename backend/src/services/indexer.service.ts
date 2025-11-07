@@ -272,13 +272,17 @@ export class IndexerService {
     event: ethers.EventLog
   ): Promise<void> {
     try {
-      console.log(`\n📤 Transfer: ${ethers.formatEther(value)} tokens`);
+      // Distinguish mints (from zero address) from regular transfers
+      const isMint = from === ethers.ZeroAddress;
+      const eventType = isMint ? 'Mint' : 'Transfer';
+
+      console.log(`\n${isMint ? '💰' : '📤'} ${eventType}: ${ethers.formatEther(value)} tokens`);
       console.log(`   From: ${from}`);
       console.log(`   To: ${to}`);
       console.log(`   Block: ${event.blockNumber}`);
 
       const processedEvent: ProcessedEvent = {
-        eventType: 'Transfer',
+        eventType,
         transactionHash: event.transactionHash,
         blockNumber: event.blockNumber,
         logIndex: event.index,

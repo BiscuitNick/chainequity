@@ -260,6 +260,92 @@ export function createIssuerRouter() {
   );
 
   /**
+   * POST /api/issuer/transfer
+   * Transfer tokens from one approved address to another
+   */
+  router.post(
+    '/transfer',
+    requireIssuerService,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { to, amount, from } = req.body;
+
+        // Validate inputs
+        if (!to || typeof to !== 'string') {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Recipient address (to) is required and must be a string',
+          });
+        }
+
+        if (!amount || typeof amount !== 'string') {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Amount is required and must be a string',
+          });
+        }
+
+        if (from && typeof from !== 'string') {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Sender address (from) must be a string if provided',
+          });
+        }
+
+        // Validate amount is a valid number
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Amount must be a positive number',
+          });
+        }
+
+        // Determine sender
+        const sender = from || issuerService.getSignerAddress();
+
+        // Check if both parties are approved
+        const [senderApproved, recipientApproved] = await Promise.all([
+          issuerService.isWalletApproved(sender),
+          issuerService.isWalletApproved(to),
+        ]);
+
+        if (!senderApproved) {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Sender wallet is not approved',
+          });
+        }
+
+        if (!recipientApproved) {
+          res.status(400).json({
+            error: 'Bad Request',
+            message: 'Recipient wallet is not approved',
+          });
+        }
+
+        // Transfer tokens
+        const receipt = await issuerService.transferTokens({ to, amount, from });
+
+        res.status(200).json({
+          success: true,
+          message: 'Tokens transferred successfully',
+          data: {
+            from: sender,
+            to,
+            amount,
+            transactionHash: receipt.hash,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed,
+          },
+        });
+      } catch (error: any) {
+        next(error);
+      }
+    }
+  );
+
+  /**
    * GET /api/issuer/info
    * Get token information
    */

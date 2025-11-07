@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS events (
     created_at INTEGER DEFAULT (strftime('%s', 'now')),
     CONSTRAINT chk_event_type CHECK (event_type IN (
         'Transfer',
+        'Mint',
         'WalletApproved',
         'WalletRevoked',
         'StockSplit',

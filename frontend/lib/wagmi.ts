@@ -20,7 +20,7 @@ if (!alchemyApiKey) {
 
 // Determine which chains to use based on environment
 const isDevelopment = process.env.NODE_ENV === 'development';
-const chains = isDevelopment ? [hardhat, polygonAmoy] : [polygonAmoy];
+const chains = (isDevelopment ? [hardhat, polygonAmoy] : [polygonAmoy]) as any;
 
 // Configure wagmi with RainbowKit
 export const config = getDefaultConfig({

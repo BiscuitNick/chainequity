@@ -1,13 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DashboardSection } from '@/components/sections/DashboardSection';
 import { ApproveSection } from '@/components/sections/ApproveSection';
 import { MintSection } from '@/components/sections/MintSection';
-import ApprovePage from './approve/page';
-import MintPage from './mint/page';
 import CapTablePage from './captable/page';
 import CorporatePage from './corporate/page';
 import EventsPage from './events/page';
@@ -41,7 +38,6 @@ function SectionWrapper({
 }
 
 export default function Home() {
-  const searchParams = useSearchParams();
   const hasScrolledRef = useRef(false);
 
   useEffect(() => {

@@ -44,6 +44,7 @@ export function createEventsRouter(db?: ReturnType<typeof getDatabase>) {
         // Validate event type
         const validEventTypes: EventType[] = [
           'Transfer',
+          'Mint',
           'WalletApproved',
           'WalletRevoked',
           'StockSplit',

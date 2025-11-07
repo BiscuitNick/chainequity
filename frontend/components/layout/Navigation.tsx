@@ -13,6 +13,7 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: '📊' },
   { href: '/approve', label: 'Wallet Approval', icon: '✅' },
   { href: '/mint', label: 'Mint Tokens', icon: '🪙' },
+  { href: '/transfer', label: 'Transfer Tokens', icon: '🔄' },
   { href: '/captable', label: 'Cap Table', icon: '📈' },
   { href: '/corporate', label: 'Corporate Actions', icon: '⚙️' },
   { href: '/events', label: 'Events', icon: '⛓️' },

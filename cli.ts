@@ -257,6 +257,67 @@ token
     }
   });
 
+token
+  .command('transfer <to> <amount>')
+  .description('Transfer tokens to an approved address')
+  .option('-n, --network <network>', 'Network to use', 'localhost')
+  .option('--from <address>', 'Sender address (for delegated transfers)')
+  .action(async (to: string, amount: string, options) => {
+    const spinner = ora('Transferring tokens...').start();
+
+    try {
+      const issuer = createIssuerService(options.network);
+
+      // Determine sender
+      const sender = options.from || issuer.getSignerAddress();
+
+      // Pre-check if both parties are approved
+      spinner.text = 'Checking wallet approvals...';
+      const [senderApproved, recipientApproved] = await Promise.all([
+        issuer.isWalletApproved(sender),
+        issuer.isWalletApproved(to),
+      ]);
+
+      if (!senderApproved) {
+        spinner.fail(chalk.red('Transfer failed'));
+        console.error(chalk.red(`  Sender wallet ${sender} is not approved`));
+        process.exit(1);
+      }
+
+      if (!recipientApproved) {
+        spinner.fail(chalk.red('Transfer failed'));
+        console.error(chalk.red(`  Recipient wallet ${to} is not approved`));
+        process.exit(1);
+      }
+
+      // Execute transfer
+      spinner.text = `Transferring ${amount} tokens...`;
+      const receipt = await issuer.transferTokens({ to, amount, from: options.from });
+
+      spinner.succeed(chalk.green('Tokens transferred!'));
+      console.log(chalk.gray('  From:'), sender);
+      console.log(chalk.gray('  To:'), to);
+      console.log(chalk.gray('  Amount:'), amount);
+      console.log(chalk.gray('  TX Hash:'), receipt.hash);
+      console.log(chalk.gray('  Gas Used:'), receipt.gasUsed);
+
+      if (options.from && options.from !== issuer.getSignerAddress()) {
+        console.log(chalk.gray('\n  Note: Delegated transfer executed via transferFrom'));
+      }
+    } catch (error: any) {
+      spinner.fail(chalk.red('Transfer failed'));
+      console.error(chalk.red(error.message));
+
+      // Provide helpful allowance message if it's an allowance error
+      if (error.message.includes('allowance')) {
+        console.log(
+          chalk.yellow('\n  Tip: The sender must approve the operator to spend tokens first.')
+        );
+      }
+      process.exit(1);
+    }
+  });
+
 // ============================================================================
 // CORPORATE ACTIONS
 // ============================================================================

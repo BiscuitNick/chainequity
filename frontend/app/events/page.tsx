@@ -6,10 +6,9 @@
  * View all blockchain events related to the token
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useTokenInfo } from '@/hooks/useTokenInfo';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SimplePagination } from '@/components/ui/pagination';
@@ -59,36 +58,20 @@ export default function EventsPage() {
         setLoading(true);
         const offset = (page - 1) * limit;
 
-        // Handle Mint filter - fetch Transfer events and filter on frontend
+        // Build query params
         let typeParam = '';
         if (eventType !== 'all') {
-          if (eventType === 'Mint') {
-            typeParam = '&eventType=Transfer';
-          } else {
-            typeParam = `&eventType=${eventType}`;
-          }
+          typeParam = `&eventType=${eventType}`;
         }
 
-        const response = await fetch(`${API_URL}/api/events?limit=${limit * 2}&offset=${offset}${typeParam}`);
+        const response = await fetch(`${API_URL}/api/events?limit=${limit}&offset=${offset}${typeParam}`);
         if (!response.ok) {
           throw new Error('Failed to fetch events');
         }
         const data = await response.json();
-        let filteredEvents = data.events || [];
 
-        // Filter for Mint or Transfer based on from_address
-        if (eventType === 'Mint') {
-          filteredEvents = filteredEvents.filter((e: Event) =>
-            e.event_type === 'Transfer' && e.from_address === '0x0000000000000000000000000000000000000000'
-          );
-        } else if (eventType === 'Transfer') {
-          filteredEvents = filteredEvents.filter((e: Event) =>
-            e.event_type === 'Transfer' && e.from_address !== '0x0000000000000000000000000000000000000000'
-          );
-        }
-
-        // Limit results to the requested amount
-        setEvents(filteredEvents.slice(0, limit));
+        // Backend now properly classifies Mint events, so we can use them directly
+        setEvents(data.events || []);
         setError('');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch events');
@@ -354,9 +337,8 @@ export default function EventsPage() {
                       const actualType = getActualEventType(event);
                       const isExpanded = expandedEventId === event.id;
                       return (
-                        <>
+                        <React.Fragment key={event.id}>
                           <tr
-                            key={event.id}
                             className="hover:bg-muted/50 cursor-pointer"
                             onClick={() => toggleRowExpansion(event.id)}
                           >
@@ -386,7 +368,7 @@ export default function EventsPage() {
                             </td>
                           </tr>
                           {isExpanded && (
-                            <tr key={`${event.id}-expanded`} className="bg-muted/30">
+                            <tr className="bg-muted/30">
                               <td colSpan={5} className="px-6 py-4">
                                 <div className="space-y-2">
                                   <h4 className="text-sm font-semibold">Raw Event Data</h4>
@@ -397,7 +379,7 @@ export default function EventsPage() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </tbody>

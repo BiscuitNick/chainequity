@@ -19,6 +19,7 @@ export interface Event {
 
 export type EventType =
   | 'Transfer'
+  | 'Mint'
   | 'WalletApproved'
   | 'WalletRevoked'
   | 'StockSplit'

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Download, ChevronDown, ChevronRight, ChevronLeft, Copy, History, X } from 'lucide-react';
+import { Download, ChevronDown, ChevronRight, ChevronLeft, Copy } from 'lucide-react';
 import { formatUnits } from 'viem';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
@@ -83,7 +83,6 @@ export default function CapTablePage() {
   const { symbol, decimals, splitMultiplier } = useTokenInfo();
 
   const [capTable, setCapTable] = useState<CapTableHolder[]>([]);
-  const [totalHolders, setTotalHolders] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -123,7 +122,6 @@ export default function CapTablePage() {
         const data = await response.json();
 
         setCapTable(data.holders || []);
-        setTotalHolders(data.holderCount || 0);
         setIsHistorical(data.isHistorical || false);
 
         // Store latest block when viewing current state
@@ -443,7 +441,7 @@ export default function CapTablePage() {
                                         // Sum up all balance changes from the beginning up to and including this transaction
                                         let cumulativeBalance = 0;
                                         for (let i = 0; i <= idx; i++) {
-                                          const change = parseFloat(array[i].balanceChange) || 0;
+                                          const change = parseFloat(array[i]?.balanceChange || '0') || 0;
                                           cumulativeBalance += change;
                                         }
                                         const newBalance = (cumulativeBalance * multiplier).toFixed(2);
@@ -621,7 +619,7 @@ export default function CapTablePage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={120}
-                  label={(entry) => `${entry.value.toFixed(2)}%`}
+                  label={(entry: any) => `${Number(entry.value).toFixed(2)}%`}
                   labelLine={true}
                 >
                   {capTable.map((_, index) => (
