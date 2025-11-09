@@ -17,7 +17,8 @@
     "test-issuer": "npm run build && node dist/test-issuer.js",
     "test-indexer": "npm run build && node dist/test-indexer.js",
     "test-indexer-local": "npm run build && node dist/test-indexer-local.js",
-    "test-captable": "npm run build && node dist/test-captable.js"
+    "test-captable": "npm run build && node dist/test-captable.js",
+    "sync-testnet": "npm run build && node dist/sync-testnet-events.js"
   },
   "keywords": [],
   "author": "",
