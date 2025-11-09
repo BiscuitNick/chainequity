@@ -14,8 +14,8 @@ import Table from 'cli-table3';
 import ora from 'ora';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
-import { IssuerService } from './dist/services/issuer.service.js';
-import { CapTableService } from './dist/services/captable.service.js';
+import { IssuerService } from './backend/dist/services/issuer.service.js';
+import { CapTableService } from './backend/dist/services/captable.service.js';
 import fs from 'fs';
 
 // Load environment
@@ -793,6 +793,142 @@ program
       console.log(table.toString());
     } catch (error: any) {
       spinner.fail(chalk.red('Failed to calculate analytics'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
+// HOLDER HISTORY COMMAND
+// ============================================================================
+
+program
+  .command('holder <address>')
+  .description('View transaction history for a specific token holder')
+  .option('-l, --limit <limit>', 'Number of transactions to show', '20')
+  .action(async (address: string, options) => {
+    if (!ethers.isAddress(address)) {
+      console.error(chalk.red('Error: Invalid Ethereum address'));
+      process.exit(1);
+    }
+
+    const spinner = ora('Fetching holder transaction history...').start();
+
+    try {
+      const capTableService = new CapTableService();
+      const db = (capTableService as any).db;
+
+      // Get holder details
+      const holderQuery = db.db.prepare(`
+        SELECT
+          address,
+          balance,
+          is_approved
+        FROM balances
+        WHERE address = ?
+      `);
+      const holder = holderQuery.get(address);
+
+      if (!holder) {
+        spinner.fail(chalk.red('Address not found in cap table'));
+        console.log(chalk.gray('\n  This address has no token balance or transaction history'));
+        return;
+      }
+
+      // Get balance history
+      const historyQuery = db.db.prepare(`
+        SELECT
+          block_number,
+          transaction_hash,
+          event_type,
+          amount,
+          balance_change,
+          new_balance,
+          timestamp,
+          gas_used,
+          gas_price
+        FROM balance_history
+        WHERE address = ?
+        ORDER BY block_number DESC, id DESC
+        LIMIT ?
+      `);
+      const limit = parseInt(options.limit) || 20;
+      const history = historyQuery.all(address, limit);
+
+      spinner.stop();
+
+      // Display holder info
+      console.log(chalk.bold('\nHolder Information:\n'));
+      console.log(chalk.gray('  Address:'), address);
+      console.log(chalk.gray('  Current Balance:'), ethers.formatEther(holder.balance));
+      console.log(
+        chalk.gray('  Approval Status:'),
+        holder.is_approved ? chalk.green('✓ Approved') : chalk.red('✗ Not Approved')
+      );
+
+      if (history.length === 0) {
+        console.log(chalk.yellow('\n  No transaction history found'));
+        return;
+      }
+
+      // Get token info for split multiplier
+      const issuer = createIssuerService();
+      const splitMultiplier = await issuer.getSplitMultiplier();
+      const multiplier = parseInt(splitMultiplier) / 10000;
+
+      console.log(chalk.bold(`\n${history.length} Recent Transactions:\n`));
+
+      const table = new Table({
+        head: [
+          chalk.cyan('Block'),
+          chalk.cyan('Date'),
+          chalk.cyan('Type'),
+          chalk.cyan('Change'),
+          chalk.cyan('New Balance'),
+          chalk.cyan('Gas'),
+        ],
+      });
+
+      for (const tx of history) {
+        const date = tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleString() : 'N/A';
+
+        // Format balance change
+        let changeStr = 'N/A';
+        let changeColor = '';
+        if (tx.balance_change) {
+          const rawChange = parseFloat(ethers.formatEther(tx.balance_change));
+          const adjustedChange = Math.abs(rawChange * multiplier);
+          const isPositive = rawChange > 0;
+          const prefix = isPositive ? '+' : '-';
+          changeStr = `${prefix}${adjustedChange.toFixed(2)}`;
+          changeColor = isPositive ? chalk.green(changeStr) : chalk.red(changeStr);
+        }
+
+        // Format new balance
+        const rawBalance = parseFloat(ethers.formatEther(tx.new_balance || '0'));
+        const adjustedBalance = (rawBalance * multiplier).toFixed(2);
+
+        // Format gas
+        const gasUsed = tx.gas_used ? parseInt(tx.gas_used).toLocaleString() : 'N/A';
+
+        // Determine event type display
+        let eventType = tx.event_type;
+        if (tx.event_type === 'Transfer' && tx.amount) {
+          const fromZero = '0x0000000000000000000000000000000000000000';
+          // If there's additional data, we could determine if it's Mint
+          eventType = 'Transfer';
+        }
+
+        table.push([tx.block_number.toString(), date, eventType, changeColor || changeStr, adjustedBalance, gasUsed]);
+      }
+
+      console.log(table.toString());
+
+      console.log(chalk.gray(`\n💡 Tips:`));
+      console.log(chalk.gray(`  Show more transactions: npm run cli holder ${address} --limit 50`));
+      console.log(chalk.gray(`  View full cap table: npm run cli captable`));
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to fetch holder history'));
       console.error(chalk.red(error.message));
       process.exit(1);
     }
