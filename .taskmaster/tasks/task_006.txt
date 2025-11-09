@@ -1,0 +1,54 @@
+# Task ID: 6
+# Title: Create Cap-Table Service for Ownership Analytics
+# Status: done
+# Dependencies: 3, 5
+# Priority: medium
+# Description: Implement the service that generates real-time and historical cap-table snapshots with ownership percentages and export capabilities
+# Details:
+Build captable.service.ts:
+1. Core cap-table generation:
+   - `generateCapTable(blockNumber?)`: Query balances at specific block
+   - Calculate ownership percentages
+   - Account for split multipliers correctly
+   - Sort by balance descending
+2. Export functionality:
+   - `exportToCSV()`: Format with headers (Address, Balance, Ownership %, Last Updated)
+   - `exportToJSON()`: Structured JSON with metadata
+3. Analytics methods:
+   - `getHolderCount()`: Total unique holders
+   - `getTotalSupply()`: Accounting for splits
+   - `getOwnershipDistribution()`: Statistical analysis
+   - `getTopHolders(limit)`: Largest holders
+4. Historical queries:
+   - Point-in-time cap-table reconstruction
+   - Balance changes over time
+5. Performance optimization with indexed queries
+
+# Test Strategy:
+Verify cap-table calculations match on-chain data, test CSV/JSON export formats, validate historical queries against known states, test with various split multipliers
+
+# Subtasks:
+## 1. Implement core cap-table generation with ownership calculations [done]
+### Dependencies: None
+### Description: Create the foundational cap-table generation logic that queries balances, calculates ownership percentages, and handles split multipliers correctly
+### Details:
+Implement captable.service.ts with generateCapTable(blockNumber?) method that queries the balances table at a specific block height, retrieves total supply accounting for splits, calculates ownership percentages for each holder, properly applies split multipliers to balances, and sorts results by balance in descending order. Include proper TypeScript interfaces for cap-table entries and ensure accurate decimal handling for percentage calculations.
+
+## 2. Add CSV and JSON export functionality for cap-table data [done]
+### Dependencies: 6.1
+### Description: Implement export methods that format cap-table data into CSV and JSON formats with appropriate headers and metadata
+### Details:
+Add exportToCSV() method that generates CSV with headers (Address, Balance, Ownership %, Last Updated), properly escapes values, and handles large decimal numbers. Implement exportToJSON() that creates structured JSON with metadata including generation timestamp, block number, total supply, and holder count. Both methods should work with the cap-table data structure from generateCapTable() and handle edge cases like empty cap-tables.
+
+## 3. Build analytics methods for holder statistics and distribution analysis [done]
+### Dependencies: 6.1
+### Description: Create analytical functions that provide insights into token holder distribution, concentration metrics, and statistical analysis
+### Details:
+Implement getHolderCount() to return total unique holders, getTotalSupply() that correctly accounts for split multipliers, getOwnershipDistribution() that calculates statistical metrics like Gini coefficient and concentration ratios, and getTopHolders(limit) that returns the largest holders with their ownership percentages. Include methods for calculating median holding, average holding, and standard deviation of holdings.
+
+## 4. Implement historical cap-table queries with point-in-time reconstruction [done]
+### Dependencies: 6.1
+### Description: Enable querying of historical cap-table states at any past block number with efficient database queries and caching
+### Details:
+Extend generateCapTable() to support historical block queries using the events table to reconstruct balances at any point in time. Implement getBalanceChanges(address, fromBlock, toBlock) to track balance evolution over time. Add caching layer for frequently queried historical states. Ensure queries are optimized with proper database indexes on block_number and address fields. Handle edge cases like querying before token deployment.
+

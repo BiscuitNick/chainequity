@@ -8,7 +8,16 @@
   "scripts": {
     "cli": "tsx cli.ts",
     "test": "hardhat test",
-    "test:specific": "hardhat test"
+    "test:specific": "hardhat test",
+    "indexer": "npm --prefix backend run test-indexer-local",
+    "watch-indexer": "npm --prefix backend run watch-indexer",
+    "prepare": "husky",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "format": "prettier --write \"**/*.{ts,js,json,md,sol}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,sol}\"",
+    "quality": "npm run lint && npm run lint:sol && npm run format:check"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
@@ -18,11 +27,20 @@
     "@types/chai-as-promised": "^8.0.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
     "chai": "^6.2.0",
     "chai-as-promised": "^8.0.2",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.10",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
     "mocha": "^11.7.4",
+    "prettier": "^3.6.2",
+    "solhint": "^6.0.1",
     "tsx": "^4.20.6",
     "typescript": "~5.8.0",
     "viem": "^2.38.6"

@@ -48,10 +48,12 @@ function getStatusCode(error: any): number {
   const errorMessage = error.message?.toLowerCase() || '';
 
   // Validation errors
-  if (errorMessage.includes('invalid address') ||
-      errorMessage.includes('invalid') ||
-      errorMessage.includes('must be') ||
-      errorMessage.includes('required')) {
+  if (
+    errorMessage.includes('invalid address') ||
+    errorMessage.includes('invalid') ||
+    errorMessage.includes('must be') ||
+    errorMessage.includes('required')
+  ) {
     return 400;
   }
 
@@ -61,22 +63,28 @@ function getStatusCode(error: any): number {
   }
 
   // Permission errors
-  if (errorMessage.includes('not approved') ||
-      errorMessage.includes('unauthorized') ||
-      errorMessage.includes('permission denied')) {
+  if (
+    errorMessage.includes('not approved') ||
+    errorMessage.includes('unauthorized') ||
+    errorMessage.includes('permission denied')
+  ) {
     return 403;
   }
 
   // Blockchain errors
-  if (errorMessage.includes('insufficient funds') ||
-      errorMessage.includes('gas required exceeds') ||
-      errorMessage.includes('execution reverted')) {
+  if (
+    errorMessage.includes('insufficient funds') ||
+    errorMessage.includes('gas required exceeds') ||
+    errorMessage.includes('execution reverted')
+  ) {
     return 400;
   }
 
   // Service unavailable
-  if (errorMessage.includes('service not initialized') ||
-      errorMessage.includes('connection failed')) {
+  if (
+    errorMessage.includes('service not initialized') ||
+    errorMessage.includes('connection failed')
+  ) {
     return 503;
   }
 
@@ -123,7 +131,7 @@ export function errorHandler(
   err: Error | ApiError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   // Log error
   console.error('\n❌ Error occurred:');

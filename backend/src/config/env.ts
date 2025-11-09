@@ -15,8 +15,12 @@ dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 export const config = {
   // Server
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: parseInt(process.env.PORT || '4000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+
+  // Network
+  useLocalNetwork: process.env.USE_LOCAL_NETWORK === 'true' || false,
+  localRpcUrl: process.env.LOCAL_RPC_URL || 'http://127.0.0.1:8545',
 
   // Alchemy
   alchemyApiKey: process.env.ALCHEMY_API_KEY || '',
@@ -31,10 +35,7 @@ export const config = {
 
 // Validate required environment variables
 export function validateConfig(): void {
-  const required = [
-    'ALCHEMY_API_KEY',
-    'TOKEN_CONTRACT_ADDRESS',
-  ];
+  const required = ['ALCHEMY_API_KEY', 'TOKEN_CONTRACT_ADDRESS'];
 
   const missing = required.filter((key) => !process.env[key]);
 

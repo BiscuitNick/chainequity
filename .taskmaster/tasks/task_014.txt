@@ -1,0 +1,98 @@
+# Task ID: 14
+# Title: Implement Auto-Indexer for Local Development
+# Status: done
+# Dependencies: 5
+# Priority: medium
+# Description: Create automatic blockchain indexing service using WebSocket subscription for local development, enabling real-time database updates when new blocks are mined
+# Details:
+Implement automatic indexing for local development:
+1. WebSocket Block Watcher Service:
+   - Create new service that subscribes to 'block' events via WebSocket
+   - Connect to local Hardhat node (ws://127.0.0.1:8545)
+   - Listen for new blocks in real-time
+   - Trigger indexer execution automatically on new blocks
+2. Auto-Indexer Implementation:
+   - Create backend/src/services/autoIndexer.service.ts
+   - Initialize WebSocket provider using ethers.js
+   - Subscribe to provider.on('block', callback)
+   - Execute existing indexer logic when new block detected
+   - Implement debouncing to avoid duplicate indexing
+3. CLI Command:
+   - Add new 'watch-indexer' or 'dev:watch' npm script
+   - Starts persistent process that runs alongside backend dev server
+   - Graceful shutdown on SIGINT/SIGTERM
+   - Reconnection logic for WebSocket disconnections
+4. Logging & Monitoring:
+   - Minimal logging: only show when new blocks are indexed
+   - Display block number and event count
+   - Silent mode for 'no new blocks' checks
+   - Error logging for WebSocket failures
+5. Local Development Only:
+   - Only runs when connecting to localhost:8545
+   - Add environment check to prevent running in production
+   - Documentation for local dev workflow
+
+# Test Strategy:
+Test WebSocket connection to local Hardhat node, verify indexer runs automatically on new block events, test reconnection after WebSocket disconnection, validate that frontend shows updates immediately after transactions, ensure graceful shutdown works correctly
+
+# Subtasks:
+## 1. Create WebSocket block watcher service [done]
+### Dependencies: None
+### Description: Implement WebSocket connection to local Hardhat node and subscribe to new block events using ethers.js provider
+### Details:
+Create backend/src/services/autoIndexer.service.ts with WebSocket provider initialization. Use ethers.WebSocketProvider to connect to ws://127.0.0.1:8545. Implement provider.on('block', (blockNumber) => {}) subscription to listen for new blocks in real-time. Add environment check to only run when RPC_URL points to localhost. Include basic error handling for connection failures. Export service class with start() and stop() methods.
+
+## 2. Implement auto-indexer logic with debouncing [done]
+### Dependencies: 14.1
+### Description: Create indexer execution logic that runs automatically when new blocks are detected, with debouncing to prevent duplicate processing
+### Details:
+Import and use existing indexer service from backend/src/services/indexer.service.ts. Implement block callback that triggers indexer.syncEvents() when new blocks arrive. Add debouncing logic (300-500ms) to batch rapid block production and avoid redundant indexing. Track last processed block number to prevent reprocessing. Add minimal logging that only displays when blocks are actually indexed (block number + event count). Handle indexer errors gracefully without crashing the watcher.
+
+## 3. Add CLI command and npm script [done]
+### Dependencies: 14.2
+### Description: Create executable script and npm command for running the auto-indexer alongside the dev server
+### Details:
+Create backend/src/watch-indexer.ts as executable entry point that initializes and starts the auto-indexer service. Add shebang and ensure it's executable. Add 'watch-indexer' script to backend/package.json: 'npm run build && node dist/watch-indexer.js'. Also add to root package.json for convenience. Include helpful startup message showing connection status and instructions. Document in README how to run the watcher alongside backend dev server.
+
+## 4. Add graceful shutdown and reconnection handling [done]
+### Dependencies: 14.2, 14.3
+### Description: Implement proper cleanup on shutdown signals and automatic reconnection logic for WebSocket disconnections
+### Details:
+Add SIGINT and SIGTERM signal handlers that close WebSocket connection gracefully and exit cleanly. Display 'Shutting down auto-indexer...' message on exit. Implement WebSocket error and close event handlers. Add automatic reconnection with exponential backoff (1s, 2s, 4s, 8s max). Display connection status messages: 'Connected to local node', 'Disconnected, reconnecting in Xs', 'Reconnected successfully'. Limit reconnection attempts or provide option to disable reconnection after multiple failures.
+
+## 5. Audit existing indexer components and plan auto-indexer integration [done]
+### Dependencies: None
+### Description: Review current IndexerService, runner, and configs to outline integration points for the new auto-indexer service.
+### Details:
+Inspect backend/src/services/indexer.service.ts, backend/src/indexer-runner.ts, and related configs to document hooks, database usage, and startup flow before coding.
+<info added on 2025-11-05T22:14:53.720Z>
+Audit complete: backend/src/services/indexer.service.ts already supports WebSocket and HTTP providers with auto-reconnect, exposes syncHistoricalEvents(fromBlock) backed by metadata persistence (db.setMetadata('last_synced_block')), and detects local mode via isLocalNetwork to switch into the existing HTTP polling branch (approx lines 120-170); backend/src/indexer-runner.ts stays the standalone CLI using createIndexerService with SIGTERM/SIGINT shutdown handling; backend/src/config/env.ts wires USE_LOCAL_NETWORK, LOCAL_RPC_URL (default http://127.0.0.1:8545), and TOKEN_CONTRACT_ADDRESS; backend/src/db/database.ts offers getMetadata/setMetadata for the metadata table; backend/package.json and package.json include dev:indexer and indexer scripts that drive the local nodemon/test-indexer-local flows. Plan for the auto indexer: implement backend/src/services/autoIndexer.service.ts that instantiates ethers.WebSocketProvider against ws://127.0.0.1:8545 when USE_LOCAL_NETWORK is true and the URL targets localhost, debounces provider.on('block') callbacks around 300-500ms, retrieves last_synced_block metadata before invoking IndexerService.syncHistoricalEvents(), emits only block number and processed event counts, and supply a backend/src/watch-indexer.ts CLI entry that mirrors indexer-runner’s graceful shutdown pattern.
+</info added on 2025-11-05T22:14:53.720Z>
+
+## 6. Implement AutoIndexerService with local WebSocket block watcher [done]
+### Dependencies: 14.5
+### Description: Create the auto indexer service that subscribes to local Hardhat blocks and triggers debounced syncs.
+### Details:
+Add backend/src/services/autoIndexer.service.ts using ethers.WebSocketProvider(ws://127.0.0.1:8545), implement 300-500ms debounce, env gating for USE_LOCAL_NETWORK with localhost guard, and invoke indexer.syncHistoricalEvents.
+<info added on 2025-11-05T22:18:28.816Z>
+Implemented AutoIndexerService in backend/src/services/autoIndexer.service.ts with localhost guard, WebSocket block subscription to ws://127.0.0.1:8545, 400 ms debounce, exponential backoff reconnects (1 s→8 s, max 10 attempts), status tracking, minimal block/event logging, and start/stop lifecycle plus createAutoIndexerService() wiring to USE_LOCAL_NETWORK; IndexerService.syncHistoricalEvents() is now public in backend/src/services/indexer.service.ts and reuses either ethers.WebSocketProvider or ethers.JsonRpcProvider so the auto indexer can sync historical events against local HTTP/WebSocket endpoints without TypeScript build issues.
+</info added on 2025-11-05T22:18:28.816Z>
+
+## 7. Create CLI watcher entry and npm scripts for running auto indexer [done]
+### Dependencies: 14.6
+### Description: Provide a CLI entrypoint and scripts to run the watcher alongside dev services with graceful shutdown.
+### Details:
+Introduce backend/src/watch-indexer.ts to bootstrap AutoIndexerService, add npm scripts watch-indexer and root alias, and handle SIGINT/SIGTERM plus reconnect backoff for WebSocket drops.
+<info added on 2025-11-05T22:20:00.084Z>
+Implemented CLI watcher entry at backend/src/watch-indexer.ts:1 bootstrapping createAutoIndexerService(), printing startup guidance, validating USE_LOCAL_NETWORK/TOKEN_CONTRACT_ADDRESS, and wiring SIGTERM/SIGINT plus uncaught exception/rejection shutdown flow. Added npm scripts in backend/package.json:12 and package.json:13 so `npm run watch-indexer` works from backend (nodemon src/watch-indexer.ts) or root (`npm --prefix backend run watch-indexer`). TypeScript build passes without errors.
+</info added on 2025-11-05T22:20:00.084Z>
+
+## 8. Add minimal logging and local workflow documentation [done]
+### Dependencies: 14.6, 14.7
+### Description: Ensure runtime logs and docs explain the local auto-indexer behavior.
+### Details:
+Implement concise logging for new block sync results and errors, add README updates describing USE_LOCAL_NETWORK flow, watcher usage, and troubleshooting for local development.
+<info added on 2025-11-05T22:21:34.623Z>
+Documented the local auto-indexer workflow in backend/README.md with overview, setup prerequisites, usage examples, output samples, technical flow, configuration, reconnection/shutdown behavior, multi-terminal recommendations, troubleshooting, and a file-structure diagram. Confirmed minimal activity-focused logging via backend/src/services/autoIndexer.service.ts:85-134, backend/src/services/autoIndexer.service.ts:274-341, covering startup/shutdown notices, block sync summaries, and reconnection status updates.
+</info added on 2025-11-05T22:21:34.623Z>
+

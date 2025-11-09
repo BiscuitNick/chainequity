@@ -58,15 +58,23 @@ async function main() {
 
   try {
     const network = await provider.getNetwork();
-    console.log('✅ Connected to network:', network.name, '(chainId:', network.chainId.toString() + ')');
-  } catch (error) {
+    console.log(
+      '✅ Connected to network:',
+      network.name,
+      '(chainId:',
+      network.chainId.toString() + ')'
+    );
+  } catch {
     console.error('❌ Failed to connect to Hardhat node');
     console.error('   Make sure Hardhat node is running: npx hardhat node');
     process.exit(1);
   }
 
   // Load contract ABI
-  const artifactPath = path.join(process.cwd(), '../artifacts/contracts/ChainEquityToken.sol/ChainEquityToken.json');
+  const artifactPath = path.join(
+    process.cwd(),
+    '../artifacts/contracts/ChainEquityToken.sol/ChainEquityToken.json'
+  );
 
   if (!fs.existsSync(artifactPath)) {
     console.error('❌ Contract artifact not found');
@@ -84,7 +92,7 @@ async function main() {
     console.log('\n✅ Contract verified:');
     console.log('   Name:', name);
     console.log('   Symbol:', symbol);
-  } catch (error) {
+  } catch {
     console.error('❌ Contract not found at address');
     console.error('   Redeploy: npx hardhat run scripts/deploy-production.ts --network localhost');
     process.exit(1);
@@ -148,7 +156,9 @@ async function main() {
     const to = event.args[1] as string;
     const value = event.args[2] as bigint;
 
-    console.log(`\n   📝 Block ${event.blockNumber} - TX ${event.transactionHash.substring(0, 10)}...`);
+    console.log(
+      `\n   📝 Block ${event.blockNumber} - TX ${event.transactionHash.substring(0, 10)}...`
+    );
     console.log(`      From: ${from.substring(0, 10)}...`);
     console.log(`      To: ${to.substring(0, 10)}...`);
     console.log(`      Amount: ${ethers.formatEther(value)}`);
@@ -201,7 +211,10 @@ async function main() {
       from_address: null,
       to_address: null,
       amount: null,
-      data: JSON.stringify({ multiplier: multiplierBP.toString(), newSplitMultiplier: newMultiplierBP.toString() }),
+      data: JSON.stringify({
+        multiplier: multiplierBP.toString(),
+        newSplitMultiplier: newMultiplierBP.toString(),
+      }),
       timestamp: block.timestamp,
     });
 

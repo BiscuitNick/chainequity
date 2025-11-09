@@ -22,6 +22,8 @@ interface ProcessedEvent {
   toAddress?: string;
   value?: string;
   data: any;
+  gasUsed?: string;
+  gasPrice?: string;
   timestamp?: number;
 }
 
@@ -42,6 +44,7 @@ interface IndexerConfig {
  */
 export class IndexerService {
   private wsProvider: ethers.WebSocketProvider | null = null;
+  private httpProvider: ethers.JsonRpcProvider | null = null;
   private contract: ethers.Contract | null = null;
   private db: ReturnType<typeof getDatabase>;
   private isRunning: boolean = false;
@@ -49,10 +52,13 @@ export class IndexerService {
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 5000; // 5 seconds
   private config: IndexerConfig;
+  private isLocalNetwork: boolean = false;
+  private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(indexerConfig: IndexerConfig) {
     this.config = indexerConfig;
     this.db = getDatabase();
+    this.isLocalNetwork = indexerConfig.wsUrl.startsWith('http://') || indexerConfig.wsUrl.startsWith('https://');
     console.log('IndexerService initialized');
   }
 
@@ -97,6 +103,12 @@ export class IndexerService {
 
     console.log('\n⏹️  Stopping Event Indexer...');
 
+    // Stop polling if active
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+
     if (this.contract) {
       // Remove all listeners
       this.contract.removeAllListeners();
@@ -105,6 +117,11 @@ export class IndexerService {
     if (this.wsProvider) {
       await this.wsProvider.destroy();
       this.wsProvider = null;
+    }
+
+    if (this.httpProvider) {
+      await this.httpProvider.destroy();
+      this.httpProvider = null;
     }
 
     this.contract = null;
@@ -117,32 +134,39 @@ export class IndexerService {
    */
   private async connect(): Promise<void> {
     try {
-      console.log('📡 Connecting to WebSocket provider...');
+      if (this.isLocalNetwork) {
+        console.log('📡 Connecting to local HTTP provider...');
 
-      // Create WebSocket provider
-      this.wsProvider = new ethers.WebSocketProvider(this.config.wsUrl);
+        // Create HTTP provider for local Hardhat
+        this.httpProvider = new ethers.JsonRpcProvider(this.config.wsUrl);
 
-      // Setup connection error handlers
-      this.wsProvider.on('error', (error) => {
-        console.error('WebSocket error:', error);
-        this.handleDisconnection();
-      });
+        // Create contract instance
+        this.contract = new ethers.Contract(
+          this.config.contractAddress,
+          ChainEquityTokenABI,
+          this.httpProvider
+        );
 
-      this.wsProvider.on('close', () => {
-        console.log('WebSocket connection closed');
-        this.handleDisconnection();
-      });
+        // Test connection
+        const network = await this.httpProvider.getNetwork();
+        console.log('✅ Connected to network:', network.name, `(chainId: ${network.chainId})`);
+      } else {
+        console.log('📡 Connecting to WebSocket provider...');
 
-      // Create contract instance
-      this.contract = new ethers.Contract(
-        this.config.contractAddress,
-        ChainEquityTokenABI,
-        this.wsProvider
-      );
+        // Create WebSocket provider
+        this.wsProvider = new ethers.WebSocketProvider(this.config.wsUrl);
 
-      // Test connection
-      const network = await this.wsProvider.getNetwork();
-      console.log('✅ Connected to network:', network.name, `(chainId: ${network.chainId})`);
+        // Create contract instance
+        this.contract = new ethers.Contract(
+          this.config.contractAddress,
+          ChainEquityTokenABI,
+          this.wsProvider
+        );
+
+        // Test connection
+        const network = await this.wsProvider.getNetwork();
+        console.log('✅ Connected to network:', network.name, `(chainId: ${network.chainId})`);
+      }
 
       this.reconnectAttempts = 0;
     } catch (error) {
@@ -167,7 +191,9 @@ export class IndexerService {
       return;
     }
 
-    console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    console.log(
+      `🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
+    );
 
     // Wait before reconnecting (exponential backoff)
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
@@ -246,13 +272,17 @@ export class IndexerService {
     event: ethers.EventLog
   ): Promise<void> {
     try {
-      console.log(`\n📤 Transfer: ${ethers.formatEther(value)} tokens`);
+      // Distinguish mints (from zero address) from regular transfers
+      const isMint = from === ethers.ZeroAddress;
+      const eventType = isMint ? 'Mint' : 'Transfer';
+
+      console.log(`\n${isMint ? '💰' : '📤'} ${eventType}: ${ethers.formatEther(value)} tokens`);
       console.log(`   From: ${from}`);
       console.log(`   To: ${to}`);
       console.log(`   Block: ${event.blockNumber}`);
 
       const processedEvent: ProcessedEvent = {
-        eventType: 'Transfer',
+        eventType,
         transactionHash: event.transactionHash,
         blockNumber: event.blockNumber,
         logIndex: event.index,
@@ -279,10 +309,7 @@ export class IndexerService {
   /**
    * Handle WalletApproved event
    */
-  private async handleWalletApprovedEvent(
-    wallet: string,
-    event: ethers.EventLog
-  ): Promise<void> {
+  private async handleWalletApprovedEvent(wallet: string, event: ethers.EventLog): Promise<void> {
     try {
       console.log(`\n✅ Wallet Approved: ${wallet}`);
       console.log(`   Block: ${event.blockNumber}`);
@@ -305,10 +332,7 @@ export class IndexerService {
   /**
    * Handle WalletRevoked event
    */
-  private async handleWalletRevokedEvent(
-    wallet: string,
-    event: ethers.EventLog
-  ): Promise<void> {
+  private async handleWalletRevokedEvent(wallet: string, event: ethers.EventLog): Promise<void> {
     try {
       console.log(`\n❌ Wallet Revoked: ${wallet}`);
       console.log(`   Block: ${event.blockNumber}`);
@@ -486,10 +510,49 @@ export class IndexerService {
    */
   private async saveEvent(event: ProcessedEvent): Promise<void> {
     try {
-      // Get block timestamp if available
-      if (!event.timestamp && this.wsProvider) {
-        const block = await this.wsProvider.getBlock(event.blockNumber);
-        event.timestamp = block?.timestamp;
+      const provider = this.wsProvider || this.httpProvider;
+      if (!provider) {
+        throw new Error('No provider available');
+      }
+
+      // Fetch transaction receipt with retry logic (for timing issues)
+      let receipt = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          receipt = await provider.getTransactionReceipt(event.transactionHash);
+          if (receipt) break;
+
+          // If receipt not found, wait a bit and retry
+          if (attempt < 2) {
+            console.log(`   ⏳ Receipt not found, retrying in 100ms... (attempt ${attempt + 1}/3)`);
+            await this.sleep(100);
+          }
+        } catch (err) {
+          console.warn(`   ⚠️ Error fetching receipt (attempt ${attempt + 1}/3):`, err);
+          if (attempt < 2) {
+            await this.sleep(100);
+          }
+        }
+      }
+
+      // Fetch block if timestamp not set
+      const block = event.timestamp ? null : await provider.getBlock(event.blockNumber);
+
+      // Set timestamp if not already set
+      if (!event.timestamp && block) {
+        event.timestamp = block.timestamp;
+      }
+
+      // Extract gas data from receipt
+      let gasUsed: string | null = null;
+      let gasPrice: string | null = null;
+
+      if (receipt) {
+        gasUsed = receipt.gasUsed ? receipt.gasUsed.toString() : null;
+        gasPrice = receipt.gasPrice ? receipt.gasPrice.toString() : null;
+        console.log(`   💰 Gas data - Used: ${gasUsed}, Price: ${gasPrice}`);
+      } else {
+        console.warn(`   ⚠️ No receipt available for tx ${event.transactionHash}`);
       }
 
       this.db.insertEvent({
@@ -500,10 +563,12 @@ export class IndexerService {
         to_address: event.toAddress || null,
         amount: event.value || null,
         data: JSON.stringify(event.data),
+        gas_used: gasUsed,
+        gas_price: gasPrice,
         timestamp: event.timestamp || 0,
       });
 
-      console.log(`   ✅ Event saved to database`);
+      console.log(`   ✅ Event saved to database [Gas: ${gasUsed || 'N/A'}]`);
     } catch (error) {
       console.error('Failed to save event:', error);
       throw error;
@@ -519,20 +584,27 @@ export class IndexerService {
     }
 
     try {
-      const balance = await this.contract.balanceOf(address);
+      // Get balance from contract (includes split multiplier)
+      const balanceWithMultiplier = await this.contract.balanceOf(address);
 
-      const currentBlock = this.wsProvider
-        ? await this.wsProvider.getBlockNumber()
-        : 0;
+      // Get current split multiplier to divide it out
+      const splitMultiplier = await this.contract.splitMultiplier();
+
+      // Calculate raw balance: (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier
+      // This reverses the contract's balanceOf calculation
+      const BASIS_POINTS = 10000n;
+      const rawBalance = (balanceWithMultiplier * BASIS_POINTS) / splitMultiplier;
+
+      const currentBlock = this.wsProvider ? await this.wsProvider.getBlockNumber() : 0;
 
       this.db.upsertBalance({
         address: address.toLowerCase(),
-        balance: balance.toString(),
+        balance: rawBalance.toString(),
         last_updated_block: currentBlock,
         last_updated_timestamp: Date.now(),
       });
 
-      console.log(`   💰 Updated balance for ${address}: ${ethers.formatEther(balance)}`);
+      console.log(`   💰 Updated balance for ${address}: ${ethers.formatEther(rawBalance)} (raw)`);
     } catch (error) {
       console.error(`Failed to update balance for ${address}:`, error);
     }
@@ -556,15 +628,17 @@ export class IndexerService {
   /**
    * Sync historical events from a specific block
    */
-  private async syncHistoricalEvents(fromBlock: number): Promise<void> {
-    if (!this.contract || !this.wsProvider) {
+  public async syncHistoricalEvents(fromBlock: number): Promise<void> {
+    const provider = this.wsProvider || this.httpProvider;
+
+    if (!this.contract || !provider) {
       throw new Error('Contract or provider not initialized');
     }
 
     console.log(`\n📚 Syncing historical events from block ${fromBlock}...`);
 
     try {
-      const currentBlock = await this.wsProvider.getBlockNumber();
+      const currentBlock = await provider.getBlockNumber();
       const toBlock = currentBlock;
 
       console.log(`   Current block: ${currentBlock}`);
@@ -652,16 +726,27 @@ export class IndexerService {
  * Create IndexerService from environment variables
  */
 export function createIndexerService(): IndexerService {
+  if (!config.tokenContractAddress) {
+    throw new Error('TOKEN_CONTRACT_ADDRESS not set in environment');
+  }
+
+  // Use local Hardhat node if configured
+  if (config.useLocalNetwork) {
+    console.log('🔧 Using local Hardhat network');
+    return new IndexerService({
+      rpcUrl: config.localRpcUrl,
+      wsUrl: config.localRpcUrl, // Will use HTTP polling instead of WebSocket
+      contractAddress: config.tokenContractAddress,
+    });
+  }
+
+  // Use Alchemy for remote networks
   const wsUrl = config.alchemyApiKey
     ? `wss://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`
     : '';
 
   if (!wsUrl) {
-    throw new Error('ALCHEMY_API_KEY not set in environment');
-  }
-
-  if (!config.tokenContractAddress) {
-    throw new Error('TOKEN_CONTRACT_ADDRESS not set in environment');
+    throw new Error('ALCHEMY_API_KEY not set in environment or USE_LOCAL_NETWORK not enabled');
   }
 
   const rpcUrl = `https://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`;

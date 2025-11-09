@@ -177,14 +177,13 @@ contract ChainEquityToken is ERC20, Ownable {
 
     /**
      * @notice Execute a virtual stock split
-     * @param multiplierBasisPoints The multiplier in basis points (e.g., 20000 for 2:1 split, 5000 for 1:2 reverse split)
+     * @param multiplierBasisPoints The multiplier in basis points
+     *        (e.g., 20000 for 2:1 split, 5000 for 1:2 reverse split)
      * @dev Multiplier must be > 0 and != BASIS_POINTS (10000)
      * @dev Examples: 20000 = 2.0x (2-for-1), 70000 = 7.0x (7-for-1), 1000 = 0.1x (1-for-10 reverse)
      */
     function executeSplit(uint256 multiplierBasisPoints) external onlyOwner {
         if (multiplierBasisPoints == 0 || multiplierBasisPoints == BASIS_POINTS) revert InvalidMultiplier();
-
-        uint256 oldMultiplier = splitMultiplier;
 
         // Multiply using fixed-point math: (splitMultiplier * multiplierBasisPoints) / BASIS_POINTS
         splitMultiplier = (splitMultiplier * multiplierBasisPoints) / BASIS_POINTS;

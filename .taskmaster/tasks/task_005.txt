@@ -1,0 +1,67 @@
+# Task ID: 5
+# Title: Build Event Indexer Service with Real-time Processing
+# Status: done
+# Dependencies: 3, 4
+# Priority: medium
+# Description: Develop the blockchain event listener that processes Transfer, Approval, and Corporate Action events in real-time and maintains the local database state
+# Details:
+Implement indexer.service.ts:
+1. WebSocket connection to Alchemy for real-time events
+2. Event listeners for:
+   - Transfer events: Update sender/recipient balances
+   - WalletApproved/Revoked: Track allowlist changes
+   - StockSplit: Record multiplier changes
+   - SymbolChanged: Log symbol updates
+3. Event processing pipeline:
+   - Parse event logs with proper ABI decoding
+   - Store in events table with full metadata
+   - Update balances table atomically
+   - Handle blockchain reorganizations
+4. Historical indexing:
+   - `reindexFromBlock(blockNumber)` for catching up
+   - Batch processing for efficiency
+5. Monitoring:
+   - Health checks for WebSocket connection
+   - Auto-reconnect on disconnection
+   - Event processing metrics
+
+# Test Strategy:
+Test real-time event capture, verify balance calculations match on-chain state, test reorganization handling, validate historical reindexing accuracy, stress test with high event volume
+
+# Subtasks:
+## 1. Setup WebSocket connection with Alchemy for real-time monitoring [done]
+### Dependencies: None
+### Description: Establish and configure WebSocket connection to Alchemy for real-time blockchain event monitoring with automatic reconnection and health checks
+### Details:
+Initialize Alchemy SDK WebSocket provider in indexer.service.ts. Configure connection parameters including network (Polygon Amoy), API key, and WebSocket options. Implement connection state management with automatic reconnection logic on disconnection. Add health check monitoring to track connection status and emit events on connection state changes. Set up error handlers for WebSocket failures and implement exponential backoff for reconnection attempts.
+
+## 2. Implement event listeners for all smart contract events [done]
+### Dependencies: 5.1
+### Description: Create event listeners for Transfer, WalletApproved, WalletRevoked, StockSplit, and SymbolChanged events with proper filtering and subscription management
+### Details:
+Set up event filters for each event type using contract ABI definitions. Implement listeners for Transfer events to track balance changes, WalletApproved/WalletRevoked for allowlist updates, StockSplit for multiplier tracking, and SymbolChanged for symbol updates. Configure event filters with proper topics and address filtering. Manage subscriptions lifecycle and ensure proper cleanup on service shutdown. Add event queueing mechanism to handle burst traffic.
+
+## 3. Create event processing pipeline with ABI decoding [done]
+### Dependencies: 5.2
+### Description: Build robust event processing pipeline that decodes raw logs using contract ABI, validates event data, and transforms events into structured database records
+### Details:
+Implement ABI decoder using ethers.js or web3.js to parse raw event logs. Create event processor classes for each event type with validation logic. Build pipeline stages: raw log reception, ABI decoding, data validation, transformation to database schema, and error handling. Add event deduplication to prevent duplicate processing. Implement event ordering to ensure sequential processing within same block. Add metrics collection for processing performance.
+
+## 4. Build database update logic for balances and events [done]
+### Dependencies: 5.3
+### Description: Implement atomic database operations to update balances table and store events with full metadata, ensuring data consistency and transaction integrity
+### Details:
+Create database transaction handlers for atomic updates to balances and events tables. Implement balance calculation logic that accounts for transfers and maintains running totals. Store complete event metadata including block number, transaction hash, timestamp, and decoded parameters. Build batch insert operations for efficiency during historical indexing. Implement database triggers or constraints to ensure data integrity. Add indexes on frequently queried fields for performance optimization.
+
+## 5. Implement blockchain reorganization handling [done]
+### Dependencies: 5.4
+### Description: Build mechanisms to detect and handle blockchain reorganizations by rolling back affected database state and reprocessing blocks
+### Details:
+Implement block confirmation tracking to detect potential reorganizations. Create rollback mechanism to revert database state to last stable block when reorg detected. Track uncle blocks and monitor for chain switches. Implement reprocessing logic to re-index affected blocks after reorganization. Store block hashes to verify chain continuity. Add configurable confirmation threshold before considering blocks finalized. Implement alerting for significant reorganization events.
+
+## 6. Add historical indexing with batch processing capabilities [done]
+### Dependencies: 5.4, 5.5
+### Description: Develop efficient batch processing system for indexing historical blockchain data with configurable block ranges and performance optimization
+### Details:
+Implement reindexFromBlock(blockNumber) method for catching up from specific block. Create batch fetching logic to retrieve multiple blocks in single RPC calls. Build parallel processing pipeline for historical events while maintaining order. Implement progress tracking and resumable indexing on interruption. Add rate limiting to prevent API throttling. Create block range chunking for memory-efficient processing. Implement checkpointing to save progress periodically. Add performance metrics for indexing speed.
+

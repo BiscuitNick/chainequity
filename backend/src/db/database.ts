@@ -19,9 +19,8 @@ import type {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Get the project root (go up from backend/src/db/)
-const PROJECT_ROOT = resolve(__dirname, '../../..');
-const DEFAULT_DB_PATH = join(PROJECT_ROOT, 'backend/data/chainequity.db');
+// Use environment variable for database path, or fall back to relative path
+const DEFAULT_DB_PATH = process.env.DATABASE_PATH || './data/chainequity.db';
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -48,6 +47,20 @@ export class DatabaseService {
   }
 
   /**
+   * Reset the singleton instance (for testing only)
+   */
+  public static resetInstance(): void {
+    if (DatabaseService.instance) {
+      try {
+        DatabaseService.instance.close();
+      } catch {
+        // Ignore errors when closing
+      }
+      DatabaseService.instance = null as any;
+    }
+  }
+
+  /**
    * Initialize database schema
    */
   private initialize(): void {
@@ -70,8 +83,9 @@ export class DatabaseService {
     const stmt = this.db.prepare(`
       INSERT INTO events (
         block_number, transaction_hash, event_type,
-        from_address, to_address, amount, data, timestamp
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        from_address, to_address, amount, data,
+        gas_used, gas_price, timestamp
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -82,6 +96,8 @@ export class DatabaseService {
       event.to_address || null,
       event.amount || null,
       event.data || null,
+      event.gas_used || null,
+      event.gas_price || null,
       event.timestamp
     );
   }
@@ -151,6 +167,36 @@ export class DatabaseService {
     `);
 
     return stmt.all(limit, offset) as Event[];
+  }
+
+  /**
+   * Get the latest block number from the events table
+   */
+  public getLatestBlock(): number {
+    // First try to get from events
+    const stmt = this.db.prepare(`
+      SELECT MAX(block_number) as latest_block FROM events
+    `);
+
+    const result = stmt.get() as { latest_block: number | null } | undefined;
+
+    // If we have events, return that block number
+    if (result?.latest_block !== null && result?.latest_block !== undefined) {
+      return result.latest_block;
+    }
+
+    // Otherwise, try to get last_synced_block from metadata
+    const lastSynced = this.getMetadata('last_synced_block');
+
+    if (lastSynced) {
+      const block = parseInt(lastSynced);
+      if (!isNaN(block) && block > 0) {
+        return block;
+      }
+    }
+
+    // Default to 0 if nothing found
+    return 0;
   }
 
   // ============================================
@@ -225,9 +271,7 @@ export class DatabaseService {
   /**
    * Insert a new corporate action
    */
-  public insertCorporateAction(
-    action: Omit<CorporateAction, 'id' | 'created_at'>
-  ): void {
+  public insertCorporateAction(action: Omit<CorporateAction, 'id' | 'created_at'>): void {
     const stmt = this.db.prepare(`
       INSERT INTO corporate_actions (
         action_type, block_number, transaction_hash,
@@ -337,6 +381,148 @@ export class DatabaseService {
    */
   public rollback(): void {
     this.db.exec('ROLLBACK');
+  }
+
+  // ============================================
+  // Gas Analytics Methods
+  // ============================================
+
+  /**
+   * Get gas statistics for all events
+   */
+  public getGasStatistics(): {
+    totalGasUsed: string;
+    averageGasUsed: string;
+    totalCost: string;
+    eventCount: number;
+  } {
+    const stmt = this.db.prepare(`
+      SELECT
+        SUM(CAST(gas_used AS INTEGER)) as total_gas,
+        AVG(CAST(gas_used AS INTEGER)) as avg_gas,
+        SUM(CAST(gas_used AS INTEGER) * CAST(gas_price AS INTEGER)) as total_cost,
+        COUNT(*) as event_count
+      FROM events
+      WHERE gas_used IS NOT NULL AND gas_price IS NOT NULL
+    `);
+
+    const result = stmt.get() as any;
+
+    return {
+      totalGasUsed: result?.total_gas?.toString() || '0',
+      averageGasUsed: result?.avg_gas?.toString() || '0',
+      totalCost: result?.total_cost?.toString() || '0',
+      eventCount: result?.event_count || 0,
+    };
+  }
+
+  /**
+   * Get gas statistics by event type
+   */
+  public getGasStatisticsByType(): Array<{
+    eventType: string;
+    count: number;
+    minGas: string;
+    maxGas: string;
+    avgGas: string;
+    totalGas: string;
+  }> {
+    const stmt = this.db.prepare(`
+      SELECT
+        event_type,
+        COUNT(*) as count,
+        MIN(CAST(gas_used AS INTEGER)) as min_gas,
+        MAX(CAST(gas_used AS INTEGER)) as max_gas,
+        AVG(CAST(gas_used AS INTEGER)) as avg_gas,
+        SUM(CAST(gas_used AS INTEGER)) as total_gas
+      FROM events
+      WHERE gas_used IS NOT NULL
+      GROUP BY event_type
+      ORDER BY avg_gas DESC
+    `);
+
+    const results = stmt.all() as any[];
+
+    return results.map((row) => ({
+      eventType: row.event_type,
+      count: row.count,
+      minGas: row.min_gas?.toString() || '0',
+      maxGas: row.max_gas?.toString() || '0',
+      avgGas: Math.round(row.avg_gas || 0).toString(),
+      totalGas: row.total_gas?.toString() || '0',
+    }));
+  }
+
+  /**
+   * Get most expensive transactions
+   */
+  public getMostExpensiveTransactions(limit: number = 10): Array<{
+    transactionHash: string;
+    eventType: string;
+    gasUsed: string;
+    gasPrice: string;
+    cost: string;
+    blockNumber: number;
+    timestamp: number;
+  }> {
+    const stmt = this.db.prepare(`
+      SELECT
+        transaction_hash,
+        event_type,
+        gas_used,
+        gas_price,
+        (CAST(gas_used AS INTEGER) * CAST(gas_price AS INTEGER)) as cost,
+        block_number,
+        timestamp
+      FROM events
+      WHERE gas_used IS NOT NULL AND gas_price IS NOT NULL
+      ORDER BY cost DESC
+      LIMIT ?
+    `);
+
+    const results = stmt.all(limit) as any[];
+
+    return results.map((row) => ({
+      transactionHash: row.transaction_hash,
+      eventType: row.event_type,
+      gasUsed: row.gas_used,
+      gasPrice: row.gas_price,
+      cost: row.cost?.toString() || '0',
+      blockNumber: row.block_number,
+      timestamp: row.timestamp,
+    }));
+  }
+
+  /**
+   * Get gas trends over time (by day)
+   */
+  public getGasTrendsByDay(days: number = 7): Array<{
+    date: string;
+    eventCount: number;
+    totalGas: string;
+    avgGas: string;
+  }> {
+    const stmt = this.db.prepare(`
+      SELECT
+        DATE(timestamp, 'unixepoch') as date,
+        COUNT(*) as event_count,
+        SUM(CAST(gas_used AS INTEGER)) as total_gas,
+        AVG(CAST(gas_used AS INTEGER)) as avg_gas
+      FROM events
+      WHERE gas_used IS NOT NULL
+        AND timestamp >= strftime('%s', 'now', '-${days} days')
+      GROUP BY DATE(timestamp, 'unixepoch')
+      ORDER BY date DESC
+    `);
+
+    const results = stmt.all() as any[];
+
+    return results.map((row) => ({
+      date: row.date,
+      eventCount: row.event_count,
+      totalGas: row.total_gas?.toString() || '0',
+      avgGas: Math.round(row.avg_gas || 0).toString(),
+    }));
   }
 
   // ============================================

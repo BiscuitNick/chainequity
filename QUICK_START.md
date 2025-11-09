@@ -1,54 +1,58 @@
-# ChainEquity - Quick Start Guide
+# ChainEquity - Quick Start with Docker
 
-## What We Built So Far ✅
+## 🚀 Get Running in 60 Seconds
 
-1. **Smart Contract** - ChainEquityToken.sol (ERC-20 with allowlist + stock splits)
-2. **Backend Server** - Express + SQLite + Alchemy SDK
-3. **Database** - Event tracking and balance management
+### **Step 1: Start Everything**
 
-## Test Locally (No API Keys!)
-
-**Terminal 1:**
 ```bash
-npx hardhat node
+docker-compose -f docker-compose.full.yml up
 ```
 
-**Terminal 2:**
-```bash
-npx hardhat run scripts/deploy-local.ts --network localhost
+Wait for all services to start (~60-90 seconds first time)
+
+### **Step 2: Access the Platform**
+
+- **Frontend UI:** http://localhost:3050
+- **Backend API:** http://localhost:4000
+- **Blockchain RPC:** http://localhost:8545
+
+### **Step 3: Connect Your Wallet**
+
+Add this network to MetaMask:
+- **Network Name:** ChainEquity Local
+- **RPC URL:** http://localhost:8545
+- **Chain ID:** 31337
+- **Currency:** ETH
+
+Import Hardhat test account:
+```
+Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
-This deploys the token, mints tokens, and tests all features!
+### **That's It! Start Using ChainEquity!** 🎉
 
-## Test Backend Server
+---
+
+## 📦 What's Running?
+
+✅ **Hardhat** - Local blockchain with contracts deployed
+✅ **Backend** - REST API for token operations
+✅ **Indexer** - Event monitoring service
+✅ **Frontend** - React UI for token management
+
+## 🛑 Stop Everything
 
 ```bash
-cd backend
-npm run dev
-# Then: curl http://localhost:3000/health
+docker-compose -f docker-compose.full.yml down
 ```
 
-## Project Status
+## 📖 Full Documentation
 
-- ✅ Tasks 1-3 complete (25%)
-- 📋 Next: Task 4 (Issuer Service)
-- 📁 Full details: See `PROJECT_SUMMARY.md`
+See [DOCKER_FULL_STACK.md](./DOCKER_FULL_STACK.md) for complete details.
 
-## Key Files
+---
 
-- `contracts/ChainEquityToken.sol` - Token contract
-- `backend/src/server.ts` - Express server
-- `backend/src/db/schema.sql` - Database
-- `hardhat.config.ts` - Network config
-- `.env` - Add your API keys here (optional for local testing)
-
-## Next Steps
-
-1. Review `PROJECT_SUMMARY.md` for complete details
-2. Run local tests above
-3. Continue with Task 4 (Issuer Service) or deploy to testnet
-
-**Task Master:**
+**Problems?** Check logs:
 ```bash
-task-master next  # See what's next
+docker-compose -f docker-compose.full.yml logs -f
 ```

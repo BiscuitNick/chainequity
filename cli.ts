@@ -14,8 +14,8 @@ import Table from 'cli-table3';
 import ora from 'ora';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
-import { IssuerService } from './backend/src/services/issuer.service.js';
-import { CapTableService } from './backend/src/services/captable.service.js';
+import { IssuerService } from './dist/services/issuer.service.js';
+import { CapTableService } from './dist/services/captable.service.js';
 import fs from 'fs';
 
 // Load environment
@@ -24,16 +24,17 @@ dotenv.config();
 const program = new Command();
 
 // CLI Configuration
-program
-  .name('chainequity')
-  .description('ChainEquity Token Management CLI')
-  .version('1.0.0');
+program.name('chainequity').description('ChainEquity Token Management CLI').version('1.0.0');
 
 // Helper: Get network configuration
 function getNetworkConfig(network: string = 'localhost') {
+  // Check if we should use local network from environment
+  const useLocalNetwork = process.env.USE_LOCAL_NETWORK === 'true';
+  const localRpcUrl = process.env.LOCAL_RPC_URL || 'http://127.0.0.1:8545';
+
   const configs: Record<string, { rpcUrl: string; wsUrl?: string }> = {
     localhost: {
-      rpcUrl: 'http://127.0.0.1:8545',
+      rpcUrl: useLocalNetwork ? localRpcUrl : 'http://127.0.0.1:8545',
     },
     polygonAmoy: {
       rpcUrl: process.env.ALCHEMY_API_KEY
@@ -260,6 +261,67 @@ token
     }
   });
 
+token
+  .command('transfer <to> <amount>')
+  .description('Transfer tokens to an approved address')
+  .option('-n, --network <network>', 'Network to use', 'localhost')
+  .option('--from <address>', 'Sender address (for delegated transfers)')
+  .action(async (to: string, amount: string, options) => {
+    const spinner = ora('Transferring tokens...').start();
+
+    try {
+      const issuer = createIssuerService(options.network);
+
+      // Determine sender
+      const sender = options.from || issuer.getSignerAddress();
+
+      // Pre-check if both parties are approved
+      spinner.text = 'Checking wallet approvals...';
+      const [senderApproved, recipientApproved] = await Promise.all([
+        issuer.isWalletApproved(sender),
+        issuer.isWalletApproved(to),
+      ]);
+
+      if (!senderApproved) {
+        spinner.fail(chalk.red('Transfer failed'));
+        console.error(chalk.red(`  Sender wallet ${sender} is not approved`));
+        process.exit(1);
+      }
+
+      if (!recipientApproved) {
+        spinner.fail(chalk.red('Transfer failed'));
+        console.error(chalk.red(`  Recipient wallet ${to} is not approved`));
+        process.exit(1);
+      }
+
+      // Execute transfer
+      spinner.text = `Transferring ${amount} tokens...`;
+      const receipt = await issuer.transferTokens({ to, amount, from: options.from });
+
+      spinner.succeed(chalk.green('Tokens transferred!'));
+      console.log(chalk.gray('  From:'), sender);
+      console.log(chalk.gray('  To:'), to);
+      console.log(chalk.gray('  Amount:'), amount);
+      console.log(chalk.gray('  TX Hash:'), receipt.hash);
+      console.log(chalk.gray('  Gas Used:'), receipt.gasUsed);
+
+      if (options.from && options.from !== issuer.getSignerAddress()) {
+        console.log(chalk.gray('\n  Note: Delegated transfer executed via transferFrom'));
+      }
+    } catch (error: any) {
+      spinner.fail(chalk.red('Transfer failed'));
+      console.error(chalk.red(error.message));
+
+      // Provide helpful allowance message if it's an allowance error
+      if (error.message.includes('allowance')) {
+        console.log(
+          chalk.yellow('\n  Tip: The sender must approve the operator to spend tokens first.')
+        );
+      }
+      process.exit(1);
+    }
+  });
+
 // ============================================================================
 // CORPORATE ACTIONS
 // ============================================================================
@@ -360,9 +422,7 @@ corporate
       });
 
       for (const action of actions) {
-        const date = action.timestamp
-          ? new Date(action.timestamp * 1000).toLocaleString()
-          : 'N/A';
+        const date = action.timestamp ? new Date(action.timestamp * 1000).toLocaleString() : 'N/A';
 
         let details = '';
         if (action.action_type === 'StockSplit') {
@@ -495,13 +555,111 @@ program
   });
 
 // ============================================================================
+// SNAPSHOT COMMAND
+// ============================================================================
+
+program
+  .command('snapshot <block>')
+  .description('Generate historical cap-table snapshot at specific block')
+  .option('-f, --format <format>', 'Output format (table|csv|json)', 'table')
+  .option('-o, --output <file>', 'Output file (for csv/json)')
+  .action(async (block: string, options) => {
+    const blockNumber = parseInt(block);
+
+    if (isNaN(blockNumber) || blockNumber < 0) {
+      console.error(chalk.red('Error: Block number must be a positive integer'));
+      process.exit(1);
+    }
+
+    const spinner = ora(`Generating snapshot at block ${blockNumber}...`).start();
+
+    try {
+      const capTableService = new CapTableService();
+      const snapshot = capTableService.getSnapshotAtBlock(blockNumber);
+
+      spinner.stop();
+
+      if (options.format === 'csv') {
+        const csv = capTableService.exportToCSV(snapshot);
+        if (options.output) {
+          fs.writeFileSync(options.output, csv);
+          console.log(chalk.green('✓'), `Snapshot exported to ${options.output}`);
+        } else {
+          console.log(csv);
+        }
+      } else if (options.format === 'json') {
+        const json = capTableService.exportToJSON(snapshot);
+        if (options.output) {
+          fs.writeFileSync(options.output, json);
+          console.log(chalk.green('✓'), `Snapshot exported to ${options.output}`);
+        } else {
+          console.log(json);
+        }
+      } else {
+        // Table format
+        console.log(chalk.bold(`\nHistorical Snapshot at Block ${blockNumber}\n`));
+        console.log(chalk.gray('Block Number:'), chalk.cyan(blockNumber));
+        console.log(chalk.gray('Total Supply:'), chalk.green(snapshot.totalSupplyFormatted));
+        console.log(chalk.gray('Holders:'), snapshot.holderCount);
+        console.log(chalk.gray('Split Multiplier:'), snapshot.splitMultiplier + 'x');
+        console.log(
+          chalk.gray('Generated At:'),
+          new Date(snapshot.generatedAt).toLocaleString()
+        );
+
+        if (snapshot.entries.length === 0) {
+          console.log(chalk.yellow('\n⚠️  No holders found at this block'));
+          console.log(chalk.gray('   This may be before any tokens were minted'));
+          return;
+        }
+
+        console.log('');
+
+        const table = new Table({
+          head: [
+            chalk.cyan('#'),
+            chalk.cyan('Address'),
+            chalk.cyan('Balance'),
+            chalk.cyan('Ownership %'),
+          ],
+        });
+
+        snapshot.entries.forEach((entry, index) => {
+          table.push([
+            index + 1,
+            entry.address.substring(0, 42),
+            entry.balanceFormatted,
+            entry.ownershipPercentage.toFixed(2) + '%',
+          ]);
+        });
+
+        console.log(table.toString());
+
+        console.log(chalk.gray('\n💡 Tips:'));
+        console.log(chalk.gray('  Export to CSV: npm run cli snapshot', blockNumber, '--format csv'));
+        console.log(
+          chalk.gray('  Save to file: npm run cli snapshot', blockNumber, '--format json -o snapshot.json')
+        );
+        console.log(chalk.gray('  View current state: npm run cli captable'));
+      }
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to generate snapshot'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
 // EVENTS COMMANDS
 // ============================================================================
 
 program
   .command('events')
   .description('View blockchain events')
-  .option('-t, --type <type>', 'Filter by event type (Transfer, WalletApproved, WalletRevoked, StockSplit, SymbolChanged)')
+  .option(
+    '-t, --type <type>',
+    'Filter by event type (Transfer, WalletApproved, WalletRevoked, StockSplit, SymbolChanged)'
+  )
   .option('-l, --limit <limit>', 'Number of events to show', '20')
   .action(async (options) => {
     const spinner = ora('Fetching events...').start();
@@ -614,10 +772,7 @@ program
         chalk.gray('Top 10 Concentration:'),
         distribution.topHoldersPercentage.toFixed(2) + '%'
       );
-      console.log(
-        chalk.gray('HHI (Concentration):'),
-        distribution.concentrationRatio.toFixed(4)
-      );
+      console.log(chalk.gray('HHI (Concentration):'), distribution.concentrationRatio.toFixed(4));
 
       console.log(chalk.bold('\nTop 5 Holders:\n'));
 
@@ -638,6 +793,119 @@ program
       console.log(table.toString());
     } catch (error: any) {
       spinner.fail(chalk.red('Failed to calculate analytics'));
+      console.error(chalk.red(error.message));
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
+// GAS ANALYTICS COMMANDS
+// ============================================================================
+
+program
+  .command('gas')
+  .description('Show gas usage analytics and statistics')
+  .option('-t, --top <number>', 'Show top N most expensive transactions', '10')
+  .option('--by-type', 'Show gas statistics grouped by event type')
+  .action(async (options) => {
+    const spinner = ora('Analyzing gas usage...').start();
+
+    try {
+      const capTableService = new CapTableService();
+      const db = (capTableService as any).db;
+
+      spinner.stop();
+
+      // Overall statistics
+      const stats = db.getGasStatistics();
+
+      console.log(chalk.bold('\n⛽ Gas Usage Analytics\n'));
+      console.log(chalk.gray('Total Events:'), stats.eventCount);
+      console.log(chalk.gray('Total Gas Used:'), chalk.yellow(Number(stats.totalGasUsed).toLocaleString()));
+      console.log(chalk.gray('Average Gas:'), chalk.yellow(Number(stats.averageGasUsed).toLocaleString()));
+
+      // Convert total cost from wei to ETH/MATIC
+      if (stats.totalCost && BigInt(stats.totalCost) > 0n) {
+        const totalCostWei = BigInt(stats.totalCost);
+        const totalCostEther = Number(totalCostWei) / 1e18;
+        console.log(chalk.gray('Total Cost:'), chalk.yellow(totalCostEther.toFixed(8)), 'MATIC/ETH');
+      }
+
+      // Show statistics by event type if requested
+      if (options.byType) {
+        console.log(chalk.bold('\n📊 Gas by Event Type:\n'));
+
+        const statsByType = db.getGasStatisticsByType();
+
+        const typeTable = new Table({
+          head: [
+            chalk.cyan('Event Type'),
+            chalk.cyan('Count'),
+            chalk.cyan('Min Gas'),
+            chalk.cyan('Avg Gas'),
+            chalk.cyan('Max Gas'),
+            chalk.cyan('Total Gas'),
+          ],
+        });
+
+        statsByType.forEach((stat: any) => {
+          typeTable.push([
+            stat.eventType,
+            stat.count,
+            Number(stat.minGas).toLocaleString(),
+            Number(stat.avgGas).toLocaleString(),
+            Number(stat.maxGas).toLocaleString(),
+            Number(stat.totalGas).toLocaleString(),
+          ]);
+        });
+
+        console.log(typeTable.toString());
+      }
+
+      // Show most expensive transactions
+      const limit = parseInt(options.top);
+      if (!isNaN(limit) && limit > 0) {
+        console.log(chalk.bold(`\n💰 Top ${limit} Most Expensive Transactions:\n`));
+
+        const expensive = db.getMostExpensiveTransactions(limit);
+
+        if (expensive.length === 0) {
+          console.log(chalk.yellow('No gas data available yet. Run the indexer to collect gas data.'));
+        } else {
+          const expensiveTable = new Table({
+            head: [
+              chalk.cyan('Event'),
+              chalk.cyan('Gas Used'),
+              chalk.cyan('Gas Price (Gwei)'),
+              chalk.cyan('Cost (MATIC)'),
+              chalk.cyan('TX Hash'),
+            ],
+          });
+
+          expensive.forEach((tx: any) => {
+            const costWei = BigInt(tx.cost);
+            const costEther = (Number(costWei) / 1e18).toFixed(8);
+            const gasPriceGwei = (Number(tx.gasPrice) / 1e9).toFixed(2);
+
+            expensiveTable.push([
+              tx.eventType,
+              Number(tx.gasUsed).toLocaleString(),
+              gasPriceGwei,
+              costEther,
+              tx.transactionHash.substring(0, 10) + '...',
+            ]);
+          });
+
+          console.log(expensiveTable.toString());
+        }
+      }
+
+      console.log(chalk.gray('\n💡 Tips:'));
+      console.log(chalk.gray('  Group by event type: npm run cli gas --by-type'));
+      console.log(chalk.gray('  Show top 20 transactions: npm run cli gas --top 20'));
+      console.log(chalk.gray('  Run indexer to collect gas data: npm run indexer'));
+    } catch (error: any) {
+      spinner.fail(chalk.red('Failed to calculate gas analytics'));
       console.error(chalk.red(error.message));
       process.exit(1);
     }

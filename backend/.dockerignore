@@ -1,0 +1,57 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Compiled output (will be rebuilt in container)
+dist
+
+# Test files
+test
+__tests__
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+coverage
+.nyc_output
+
+# Development files
+.env
+.env.local
+.env.*.local
+nodemon.json
+
+# Build artifacts
+dist
+
+# Database files (will be mounted as volume)
+data
+*.db
+*.db-shm
+*.db-wal
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs
+
+# Logs
+logs
+*.log
+
+# Testing scripts
+test-*.sh
+test-*.ts
+test-*.js

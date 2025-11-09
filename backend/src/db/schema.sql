@@ -11,10 +11,13 @@ CREATE TABLE IF NOT EXISTS events (
     to_address TEXT,
     amount TEXT,
     data TEXT, -- JSON string for additional event data
+    gas_used TEXT, -- Gas consumed by the transaction
+    gas_price TEXT, -- Effective gas price in wei
     timestamp INTEGER NOT NULL,
     created_at INTEGER DEFAULT (strftime('%s', 'now')),
     CONSTRAINT chk_event_type CHECK (event_type IN (
         'Transfer',
+        'Mint',
         'WalletApproved',
         'WalletRevoked',
         'StockSplit',

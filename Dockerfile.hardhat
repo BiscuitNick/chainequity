@@ -1,0 +1,27 @@
+# ============================================
+# Hardhat Local Blockchain with Auto-Deploy
+# ============================================
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache bash git python3 make g++ netcat-openbsd
+
+# Copy package files
+COPY package*.json ./
+COPY hardhat.config.ts ./
+COPY tsconfig.json ./
+
+# Install all dependencies
+RUN npm ci && npm cache clean --force
+
+# Copy source code
+COPY contracts ./contracts
+COPY scripts ./scripts
+
+# Expose Hardhat RPC port
+EXPOSE 8545
+
+# Start Hardhat node and deploy contracts
+CMD ["bash", "scripts/docker-start-hardhat.sh"]

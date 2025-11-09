@@ -65,10 +65,7 @@ export class IssuerService {
    * @param config - Service configuration
    * @param retryConfig - Optional retry configuration
    */
-  constructor(
-    serviceConfig: IssuerServiceConfig,
-    retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
-  ) {
+  constructor(serviceConfig: IssuerServiceConfig, retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG) {
     // Validate configuration
     if (!serviceConfig.rpcUrl) {
       throw new Error('RPC URL is required');
@@ -256,6 +253,114 @@ export class IssuerService {
   }
 
   /**
+   * Transfer tokens from one address to another
+   *
+   * @param params - Transfer parameters
+   * @param params.to - Recipient address (must be approved)
+   * @param params.amount - Amount in token units (will be converted based on split multiplier)
+   * @param params.from - Optional sender address (for delegated transfers via transferFrom)
+   * @returns Transaction receipt
+   */
+  async transferTokens(params: {
+    to: string;
+    amount: string;
+    from?: string;
+  }): Promise<TransactionReceipt> {
+    const { to, amount, from } = params;
+
+    // Validate addresses
+    if (!alchemyUtils.isValidAddress(to)) {
+      throw new Error(`Invalid recipient address: ${to}`);
+    }
+    if (to === ethers.ZeroAddress) {
+      throw new Error('Cannot transfer to zero address');
+    }
+
+    // Determine sender
+    const sender = from || this.wallet.address;
+    if (!alchemyUtils.isValidAddress(sender)) {
+      throw new Error(`Invalid sender address: ${sender}`);
+    }
+
+    // Prevent self-transfer
+    if (sender.toLowerCase() === to.toLowerCase()) {
+      throw new Error('Cannot transfer to yourself');
+    }
+
+    // Check if both parties are approved
+    const [senderApproved, recipientApproved] = await Promise.all([
+      this.isWalletApproved(sender),
+      this.isWalletApproved(to),
+    ]);
+
+    if (!senderApproved) {
+      throw new Error(`Sender ${sender} is not approved`);
+    }
+    if (!recipientApproved) {
+      throw new Error(`Recipient ${to} is not approved`);
+    }
+
+    // Get decimals and split multiplier
+    const [decimals, splitMultiplier] = await Promise.all([
+      this.contract.decimals(),
+      this.getSplitMultiplier(),
+    ]);
+
+    // Convert displayed amount to actual on-chain amount
+    // displayedWei = parseUnits(amount, decimals)
+    // actualWei = displayedWei * 10000 / splitMultiplier
+    const displayedWei = ethers.parseUnits(amount, decimals);
+    const actualWei = (displayedWei * 10000n) / BigInt(splitMultiplier);
+
+    console.log(
+      `Transferring ${amount} tokens from ${sender} to ${to} (${actualWei.toString()} wei)`
+    );
+
+    // Determine if this is a direct transfer or delegated transferFrom
+    if (!from || from.toLowerCase() === this.wallet.address.toLowerCase()) {
+      // Direct transfer from signer
+      const gasEstimate = await this.contract.transfer.estimateGas(to, actualWei);
+      console.log(`Estimated gas: ${gasEstimate.toString()}`);
+
+      const tx = await this.executeWithRetry(async () => {
+        return await this.contract.transfer(to, actualWei, {
+          gasLimit: (gasEstimate * 120n) / 100n, // Add 20% buffer
+        });
+      });
+
+      const receipt = await tx.wait();
+      if (!receipt) {
+        throw new Error('Transaction receipt is null');
+      }
+      return this.formatReceipt(receipt);
+    } else {
+      // Delegated transfer using transferFrom
+      // Check allowance first
+      const allowance = await this.contract.allowance(sender, this.wallet.address);
+      if (allowance < actualWei) {
+        throw new Error(
+          `Insufficient allowance. Sender ${sender} must approve ${this.wallet.address} to spend at least ${actualWei} wei. Current allowance: ${allowance}`
+        );
+      }
+
+      const gasEstimate = await this.contract.transferFrom.estimateGas(sender, to, actualWei);
+      console.log(`Estimated gas: ${gasEstimate.toString()}`);
+
+      const tx = await this.executeWithRetry(async () => {
+        return await this.contract.transferFrom(sender, to, actualWei, {
+          gasLimit: (gasEstimate * 120n) / 100n,
+        });
+      });
+
+      const receipt = await tx.wait();
+      if (!receipt) {
+        throw new Error('Transaction receipt is null');
+      }
+      return this.formatReceipt(receipt);
+    }
+  }
+
+  /**
    * Get token balance of an address
    *
    * @param address - Address to query
@@ -298,7 +403,9 @@ export class IssuerService {
     }
 
     const multiplierDecimal = multiplierBasisPoints / 10000;
-    console.log(`Executing ${multiplierDecimal}x stock split (${multiplierBasisPoints} basis points)`);
+    console.log(
+      `Executing ${multiplierDecimal}x stock split (${multiplierBasisPoints} basis points)`
+    );
 
     // Estimate gas
     const gasEstimate = await this.contract.executeSplit.estimateGas(multiplierBasisPoints);
@@ -459,7 +566,7 @@ export class IssuerService {
       'execution reverted',
     ];
 
-    return nonRetryable.some(msg => errorMessage.includes(msg));
+    return nonRetryable.some((msg) => errorMessage.includes(msg));
   }
 
   /**
@@ -478,7 +585,7 @@ export class IssuerService {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -486,7 +593,9 @@ export class IssuerService {
  * Create IssuerService instance from environment variables
  */
 export function createIssuerService(): IssuerService {
-  const rpcUrl = `https://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`;
+  const rpcUrl = config.useLocalNetwork
+    ? config.localRpcUrl
+    : `https://polygon-amoy.g.alchemy.com/v2/${config.alchemyApiKey}`;
 
   const privateKey = process.env.ISSUER_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
   if (!privateKey) {

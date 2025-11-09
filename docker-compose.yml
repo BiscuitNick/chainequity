@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # ChainEquity API Server
+  # ============================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chainequity-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      # Server Configuration
+      - PORT=4000
+      - NODE_ENV=production
+
+      # Alchemy Configuration
+      - ALCHEMY_API_KEY=${ALCHEMY_API_KEY}
+      - ALCHEMY_NETWORK=${ALCHEMY_NETWORK:-polygon-amoy}
+
+      # Contract Configuration
+      - TOKEN_CONTRACT_ADDRESS=${TOKEN_CONTRACT_ADDRESS}
+
+      # Issuer Configuration
+      - ISSUER_PRIVATE_KEY=${ISSUER_PRIVATE_KEY:-${DEPLOYER_PRIVATE_KEY}}
+
+      # Database Configuration
+      - DATABASE_PATH=/app/data/chainequity.db
+    volumes:
+      # Persistent database storage
+      - chainequity-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chainequity-network
+    command: node dist/server.js
+
+  # ============================================
+  # ChainEquity Event Indexer
+  # ============================================
+  # NOTE: Disabled by default - watch-indexer only works with local Hardhat
+  # For Polygon Amoy, use Alchemy webhooks or on-demand indexing via API
+  indexer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chainequity-indexer
+    restart: "no"  # Disabled - not needed for testnet deployment
+    environment:
+      # Alchemy Configuration
+      - ALCHEMY_API_KEY=${ALCHEMY_API_KEY}
+      - ALCHEMY_NETWORK=${ALCHEMY_NETWORK:-polygon-amoy}
+
+      # Contract Configuration
+      - TOKEN_CONTRACT_ADDRESS=${TOKEN_CONTRACT_ADDRESS}
+
+      # Database Configuration
+      - DATABASE_PATH=/app/data/chainequity.db
+
+      # Node Environment
+      - NODE_ENV=production
+    volumes:
+      # Share the same database with API server
+      - chainequity-data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - chainequity-network
+    command: node dist/watch-indexer.js
+
+# ============================================
+# Named Volumes
+# ============================================
+volumes:
+  chainequity-data:
+    driver: local
+    name: chainequity-db-data
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  chainequity-network:
+    driver: bridge
+    name: chainequity-network

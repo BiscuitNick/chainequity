@@ -1,0 +1,47 @@
+# Ignore .env files to prevent secrets from being copied into Docker images
+.env
+.env.local
+.env.*.local
+
+# Node modules
+node_modules
+**/node_modules
+
+# Build artifacts
+dist
+build
+.next
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test coverage
+coverage
+
+# Backend specific
+backend/data
+backend/*.db
+backend/*.db-*
+
+# Frontend specific
+frontend/.next
+frontend/out
+
+# Hardhat
+cache
+artifacts
