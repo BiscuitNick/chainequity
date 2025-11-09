@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useContract } from '@/hooks/useContract';
 import { useTokenInfo } from '@/hooks/useTokenInfo';
@@ -33,6 +33,12 @@ export function MintSection() {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
 
+  // Track last processed transactions to prevent duplicate toasts
+  const lastProcessedMintHash = useRef<string | null>(null);
+  const lastProcessedTransferHash = useRef<string | null>(null);
+  const lastProcessedMintError = useRef<Error | null>(null);
+  const lastProcessedTransferError = useRef<Error | null>(null);
+
   // Mint transaction hooks
   const { writeContract: writeMint, data: mintHash, isPending: isMintPending, error: mintWriteError } = useWriteContract();
   const { isLoading: isMintConfirming, isSuccess: isMintSuccess, error: mintTxError } = useWaitForTransactionReceipt({ hash: mintHash });
@@ -56,54 +62,89 @@ export function MintSection() {
 
   // Handle mint success
   useEffect(() => {
-    if (isMintSuccess && mintHash) {
-      toast.success(`Minted ${amount} ${symbol} successfully!`, {
+    if (isMintSuccess && mintHash && mintHash !== lastProcessedMintHash.current) {
+      // Capture values at time of success (before clearing form)
+      const successAmount = amount;
+      const successSymbol = symbol;
+
+      toast.success(`Minted ${successAmount} ${successSymbol} successfully!`, {
         description: `Transaction: ${mintHash.slice(0, 10)}...${mintHash.slice(-8)}`,
       });
       setRecipient('');
       setAmount('');
+
+      // Mark this hash as processed
+      lastProcessedMintHash.current = mintHash;
     }
-  }, [isMintSuccess, mintHash, amount, symbol]);
+  }, [isMintSuccess, mintHash]);
 
   // Handle transfer success
   useEffect(() => {
-    if (isTransferSuccess && transferHash) {
-      toast.success(`Transferred ${amount} ${symbol} successfully!`, {
+    if (isTransferSuccess && transferHash && transferHash !== lastProcessedTransferHash.current) {
+      // Capture values at time of success (before clearing form)
+      const successAmount = amount;
+      const successSymbol = symbol;
+
+      toast.success(`Transferred ${successAmount} ${successSymbol} successfully!`, {
         description: `Transaction: ${transferHash.slice(0, 10)}...${transferHash.slice(-8)}`,
       });
       setRecipient('');
       setAmount('');
-    }
-  }, [isTransferSuccess, transferHash, amount, symbol]);
 
-  // Handle errors
+      // Mark this hash as processed
+      lastProcessedTransferHash.current = transferHash;
+    }
+  }, [isTransferSuccess, transferHash]);
+
+  // Handle mint write errors
   useEffect(() => {
-    if (mintWriteError) {
+    if (mintWriteError && mintWriteError !== lastProcessedMintError.current) {
       toast.error('Mint transaction failed', {
         description: mintWriteError.message,
       });
+      lastProcessedMintError.current = mintWriteError;
     }
-    if (mintTxError) {
+  }, [mintWriteError]);
+
+  // Handle mint transaction errors
+  useEffect(() => {
+    if (mintTxError && mintTxError !== lastProcessedMintError.current) {
       toast.error('Mint transaction failed', {
         description: mintTxError.message,
       });
+      lastProcessedMintError.current = mintTxError;
     }
-    if (transferWriteError) {
+  }, [mintTxError]);
+
+  // Handle transfer write errors
+  useEffect(() => {
+    if (transferWriteError && transferWriteError !== lastProcessedTransferError.current) {
       toast.error('Transfer transaction failed', {
         description: transferWriteError.message,
       });
+      lastProcessedTransferError.current = transferWriteError;
     }
-    if (transferTxError) {
+  }, [transferWriteError]);
+
+  // Handle transfer transaction errors
+  useEffect(() => {
+    if (transferTxError && transferTxError !== lastProcessedTransferError.current) {
       toast.error('Transfer transaction failed', {
         description: transferTxError.message,
       });
+      lastProcessedTransferError.current = transferTxError;
     }
-  }, [mintWriteError, mintTxError, transferWriteError, transferTxError]);
+  }, [transferTxError]);
 
-  // Clear form when switching operations
+  // Clear form and reset tracking when switching operations
   useEffect(() => {
     setRecipient('');
     setAmount('');
+    // Reset processed transaction tracking for clean slate
+    lastProcessedMintHash.current = null;
+    lastProcessedTransferHash.current = null;
+    lastProcessedMintError.current = null;
+    lastProcessedTransferError.current = null;
   }, [operation]);
 
   const handleMint = async () => {

@@ -7,7 +7,7 @@
  */
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useContract } from '@/hooks/useContract';
 import { useTokenInfo } from '@/hooks/useTokenInfo';
@@ -25,6 +25,9 @@ export default function MintPage() {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
+
+  // Track last processed transaction to prevent duplicate form clears
+  const lastProcessedHash = useRef<string | null>(null);
 
   // Write contract hooks
   const { writeContract, data: hash, isPending } = useWriteContract();
@@ -85,13 +88,23 @@ export default function MintPage() {
     }
   };
 
-  // Clear form on success
-  if (isSuccess) {
-    setTimeout(() => {
-      setRecipient('');
-      setAmount('');
-    }, 2000);
-  }
+  // Clear form on success (moved to useEffect to prevent re-running on every render)
+  useEffect(() => {
+    if (isSuccess && hash && hash !== lastProcessedHash.current) {
+      const timeoutId = setTimeout(() => {
+        setRecipient('');
+        setAmount('');
+        setError('');
+      }, 2000);
+
+      // Mark this hash as processed
+      lastProcessedHash.current = hash;
+
+      // Cleanup timeout if component unmounts
+      return () => clearTimeout(timeoutId);
+    }
+    return undefined;
+  }, [isSuccess, hash]);
 
   if (!isConnected) {
     return (
