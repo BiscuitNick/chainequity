@@ -1,11 +1,13 @@
 # ChainEquity
 
-**ERC-20 Tokenized Securities with Virtual Stock Splits**
+**ERC-20 Tokenized Securities with Virtual Stock Splits & Event Indexing**
 
-ChainEquity is a production-ready smart contract system for tokenizing securities on Ethereum-compatible blockchains. It implements an ERC-20 compliant token with advanced features including virtual stock splits, wallet allowlisting, and comprehensive event tracking.
+ChainEquity is a production-ready smart contract system for tokenizing securities on Ethereum-compatible blockchains. It implements an ERC-20 compliant token with advanced features including virtual stock splits, wallet allowlisting, comprehensive event tracking, and a full-stack application with blockchain indexing.
 
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue.svg)](https://soliditylang.org/)
 [![Hardhat](https://img.shields.io/badge/Hardhat-3.0-yellow.svg)](https://hardhat.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -13,22 +15,18 @@ ChainEquity is a production-ready smart contract system for tokenizing securitie
 ## Table of Contents
 
 - [Features](#features)
-- [Architecture](#architecture)
 - [Quick Start](#quick-start)
-  - [Quick Start with Docker](#quick-start-with-docker-)
-  - [Quick Installation (Local Development)](#quick-installation-local-development)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [Development](#development)
 - [Testing](#testing)
+- [CLI Usage](#cli-usage)
+- [Frontend Application](#frontend-application)
+- [API Reference](#api-reference)
 - [Deployment](#deployment)
-  - [Docker Deployment](#docker-deployment)
-- [API Documentation](#api-documentation)
+- [Architecture](#architecture)
 - [Gas Efficiency](#gas-efficiency)
 - [Security](#security)
 - [Contributing](#contributing)
-- [License](#license)
 
 ---
 
@@ -36,12 +34,17 @@ ChainEquity is a production-ready smart contract system for tokenizing securitie
 
 ### Core Functionality
 
-- **ERC-20 Compliance**: Fully compatible with the ERC-20 token standard
-- **Virtual Stock Splits**: Execute stock splits without rebalancing all holder accounts
-- **Wallet Allowlist**: Restrict token transfers to approved wallets only
-- **Metadata Management**: Update token name and symbol post-deployment
-- **Event Tracking**: Comprehensive event emission for all state changes
-- **Gas Optimized**: 14-25% more efficient than standard ERC-20 implementations
+- ✅ **ERC-20 Compliance**: Fully compatible with the ERC-20 token standard
+- ✅ **Virtual Stock Splits**: Execute stock splits without rebalancing all holder accounts (~30k gas)
+- ✅ **Wallet Allowlist**: Restrict token transfers to approved wallets only
+- ✅ **Metadata Management**: Update token name and symbol post-deployment
+- ✅ **Event Tracking**: Comprehensive event emission and blockchain indexing
+- ✅ **Gas Optimized**: 14-25% more efficient than standard ERC-20 implementations
+- ✅ **Full-Stack Application**: React frontend, Express backend, real-time indexing
+- ✅ **Cap Table Management**: Real-time cap table with CSV export
+- ✅ **Corporate Actions Tracking**: Complete audit trail of splits, name/symbol changes
+- ✅ **RESTful API**: Comprehensive API for analytics, events, and cap table data
+- ✅ **Docker Support**: One-command deployment with Docker Compose
 
 ### Virtual Stock Split Mechanism
 
@@ -50,7 +53,7 @@ Traditional stock splits require iterating through all token holders to update b
 - **Constant Gas Cost**: Stock splits cost ~30k gas regardless of holder count
 - **Automatic Calculation**: Balances are computed on-the-fly using a split multiplier
 - **Split History**: All corporate actions are tracked in the database
-- **Forward & Reverse**: Supports both forward splits (2:1, 5:1) and reverse splits (1:2)
+- **Forward & Reverse**: Supports both forward splits (2:1, 7:1) and reverse splits (1:2)
 
 ### Technology Stack
 
@@ -64,48 +67,21 @@ Traditional stock splits require iterating through all token holders to update b
 - Express.js REST API
 - SQLite database with better-sqlite3
 - Alchemy SDK for blockchain indexing
+- Real-time event listener
+
+**Frontend:**
+- Next.js 16 with React 19
+- TailwindCSS + shadcn/ui components
+- RainbowKit for wallet connection
+- Wagmi for contract interactions
+- React Query for data fetching
 
 **Testing & Development:**
 - Hardhat 3.0 with Viem
 - Node.js native test runner
-- Comprehensive unit and integration tests
+- Jest for backend integration tests
+- Comprehensive unit and integration tests (61 passing)
 - Gas benchmarking tools
-
----
-
-## Architecture
-
-ChainEquity consists of three main components:
-
-```
-┌─────────────────────┐
-│  Smart Contract     │
-│  (ChainEquityToken) │
-└──────────┬──────────┘
-           │
-           │ Events
-           ↓
-┌─────────────────────┐
-│  Event Listener     │
-│  (Alchemy SDK)      │
-└──────────┬──────────┘
-           │
-           │ Database Writes
-           ↓
-┌─────────────────────┐
-│  SQLite Database    │
-│  (Events, Balances) │
-└──────────┬──────────┘
-           │
-           │ Read Operations
-           ↓
-┌─────────────────────┐
-│  REST API           │
-│  (Express.js)       │
-└─────────────────────┘
-```
-
-For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -113,35 +89,31 @@ For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### Prerequisites
 
-**Option 1: Docker (Recommended for Quick Start)**
+**Option 1: Docker (Recommended - Fastest)**
 - Docker Desktop installed
 - Git
 
 **Option 2: Local Development**
 - Node.js 20+ and npm
 - Git
-- An Ethereum wallet with testnet funds (for deployment)
 - Alchemy API key (for event indexing)
 
 ### Quick Start with Docker 🐳
 
-The fastest way to get ChainEquity running locally:
+The fastest way to get ChainEquity running:
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/chainequity.git
 cd chainequity
 
-# Set up environment (optional - has sensible defaults)
-cp .env.example .env
-
-# Start all services (Hardhat blockchain + API + Frontend + Indexer)
+# Start all services (Hardhat + Backend + Frontend + Indexer)
 docker-compose -f docker-compose.full.yml up
 
 # Access the application
-# Frontend: http://localhost:3050
-# API: http://localhost:4000
-# Hardhat RPC: http://localhost:8545
+# Frontend:    http://localhost:3050
+# API:         http://localhost:4000
+# Blockchain:  http://localhost:8545
 ```
 
 **That's it!** Docker will:
@@ -151,6 +123,17 @@ docker-compose -f docker-compose.full.yml up
 - ✅ Start the backend API server
 - ✅ Start the event indexer
 - ✅ Start the Next.js frontend
+
+**Connect MetaMask:**
+```
+Network Name: ChainEquity Local
+RPC URL:      http://localhost:8545
+Chain ID:     31337
+Currency:     ETH
+
+Test Account Private Key (10,000 ETH):
+0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
 
 **Stop all services:**
 ```bash
@@ -163,80 +146,53 @@ docker-compose -f docker-compose.full.yml down -v
 docker-compose -f docker-compose.full.yml up
 ```
 
-See [Docker Deployment](#docker-deployment) for more details.
-
-### Quick Installation (Local Development)
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/chainequity.git
-cd chainequity
-
-# Install dependencies
-npm install
-cd backend && npm install && cd ..
-cd frontend && npm install && cd ..
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Run tests
-npm test
-
-# Start local Hardhat node
-npx hardhat node
-
-# Deploy contract (in another terminal)
-npx hardhat run scripts/deploy-production.ts --network localhost
-
-# Clear database (important when restarting Hardhat)
-rm -rf backend/data/chainequity.db*
-
-# Start backend server
-cd backend && npm start
-
-# Start frontend (in another terminal)
-cd frontend && npm run dev
-```
-
 ---
 
 ## Installation
 
-### 1. Clone the Repository
+### Local Development Setup
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/yourusername/chainequity.git
 cd chainequity
-```
 
-### 2. Install Dependencies
-
-```bash
-# Install root dependencies
+# 2. Install root dependencies
 npm install
 
-# Install backend dependencies
-cd backend
-npm install
-cd ..
+# 3. Install backend dependencies
+cd backend && npm install && cd ..
+
+# 4. Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# 5. Set up environment variables (see Configuration section)
+cp .env.example .env
+# Edit .env with your keys
+
+# 6. Run tests to verify setup
+npm test
+cd backend && npm test && cd ..
 ```
 
-### 3. Environment Configuration
+---
 
-Create a `.env` file in the root directory:
+## Configuration
+
+### Environment Variables
+
+**Root `.env` file** (Smart contracts & deployment):
 
 ```bash
 # Blockchain Configuration
-ALCHEMY_API_KEY=your_alchemy_api_key
-DEPLOYER_PRIVATE_KEY=0x...
+ALCHEMY_API_KEY=your_alchemy_api_key_here
+DEPLOYER_PRIVATE_KEY=0xyour_private_key_here
 
-# Network Configuration
+# Network RPC URLs
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your-key
 POLYGON_AMOY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-key
 
-# Verification
+# Contract Verification
 ETHERSCAN_API_KEY=your_etherscan_api_key
 POLYGONSCAN_API_KEY=your_polygonscan_api_key
 
@@ -245,243 +201,60 @@ REPORT_GAS=true
 COINMARKETCAP_API_KEY=your_cmc_api_key
 ```
 
-Create a `.env` file in the `backend` directory:
+**Backend `.env` file** (backend directory):
 
 ```bash
 # Server Configuration
-PORT=3000
+PORT=4000
 NODE_ENV=development
 
 # Database
 DATABASE_PATH=./data/chainequity.db
 
-# Blockchain
-ALCHEMY_API_KEY=your_alchemy_api_key
-CHAIN_ID=80002
-TOKEN_ADDRESS=0x...
-START_BLOCK=0
+# Blockchain Connection
+ALCHEMY_API_KEY=your_alchemy_api_key_here
+CHAIN_ID=80002                    # Polygon Amoy testnet
+TOKEN_CONTRACT_ADDRESS=0x...      # Deployed contract address
+START_BLOCK=0                     # Block to start indexing from
 
 # API Configuration
-RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_WINDOW_MS=900000       # 15 minutes
 RATE_LIMIT_MAX_REQUESTS=100
 ```
 
----
-
-## Configuration
-
-### Hardhat Configuration
-
-The `hardhat.config.ts` file includes:
-
-- **Solidity Compiler**: Version 0.8.20 with optimizer (200 runs)
-- **Networks**: Localhost, Sepolia, Polygon Amoy
-- **Gas Reporter**: Configurable gas consumption reporting
-- **Etherscan Verification**: Automatic contract verification
-
-### Network Configuration
-
-#### Local Development
+**Frontend `.env.local` file** (frontend directory):
 
 ```bash
-# Start Hardhat node
-npx hardhat node
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:4000
 
-# Deploy to local network
-npx hardhat run scripts/deploy-local.ts --network localhost
+# Blockchain Configuration
+NEXT_PUBLIC_CHAIN_ID=80002
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
+
+# Alchemy API Key (for frontend RPC)
+NEXT_PUBLIC_ALCHEMY_API_KEY=your_alchemy_api_key_here
+
+# WalletConnect Project ID (optional, for WalletConnect)
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 ```
 
-#### Testnet Deployment (Polygon Amoy)
+### Getting API Keys
 
-```bash
-# Ensure you have testnet MATIC
-# Update .env with DEPLOYER_PRIVATE_KEY
+1. **Alchemy API Key** (Required for indexing):
+   - Sign up at [alchemy.com](https://alchemy.com)
+   - Create a new app for your target network
+   - Copy the API key
 
-npx hardhat run scripts/deploy.ts --network polygonAmoy
-```
+2. **Etherscan/Polygonscan API Key** (Required for contract verification):
+   - Sign up at [etherscan.io](https://etherscan.io) or [polygonscan.com](https://polygonscan.com)
+   - Navigate to API Keys section
+   - Generate a new key
 
-#### Mainnet Deployment
-
-```bash
-# ⚠️ CAUTION: Real funds required
-# Review all configurations
-# Test thoroughly on testnet first
-
-npx hardhat run scripts/deploy-production.ts --network mainnet
-```
-
----
-
-## Usage
-
-### Smart Contract Interactions
-
-#### Deploy Contract
-
-```typescript
-import { viem } from "hardhat";
-
-const token = await viem.deployContract("ChainEquityToken", [
-  "My Company Stock",  // Token name
-  "MCS",              // Token symbol
-  ownerAddress        // Owner address
-]);
-```
-
-#### Approve Wallet
-
-```typescript
-// Only owner can approve wallets
-await token.write.approveWallet([walletAddress]);
-```
-
-#### Mint Tokens
-
-```typescript
-// Only owner can mint
-await token.write.mint([
-  recipientAddress,
-  parseEther("1000")  // Amount in wei
-]);
-```
-
-#### Transfer Tokens
-
-```typescript
-// Both sender and receiver must be approved
-await token.write.transfer([
-  recipientAddress,
-  parseEther("100")
-]);
-```
-
-#### Execute Stock Split
-
-```typescript
-// 2:1 forward split
-await token.write.executeSplit([20000n]);  // 20000 basis points = 2.0x
-
-// 1:2 reverse split
-await token.write.executeSplit([5000n]);   // 5000 basis points = 0.5x
-```
-
-#### Check Balance
-
-```typescript
-const balance = await token.read.balanceOf([address]);
-const formatted = formatEther(balance);
-console.log(`Balance: ${formatted} tokens`);
-```
-
-### Backend API Usage
-
-#### Start the Server
-
-```bash
-cd backend
-npm start
-```
-
-#### API Endpoints
-
-**Get Cap Table**
-```bash
-curl http://localhost:3000/api/captable
-```
-
-**Get Holder Information**
-```bash
-curl http://localhost:3000/api/captable/holder/0x123...
-```
-
-**Get Analytics**
-```bash
-curl http://localhost:3000/api/analytics/overview
-```
-
-**Get Corporate Actions**
-```bash
-curl http://localhost:3000/api/corporate/history
-```
-
-For complete API documentation, see [API.md](API.md).
-
----
-
-## Development
-
-### Project Structure
-
-```
-chainequity/
-├── contracts/              # Smart contracts
-│   └── ChainEquityToken.sol
-├── test/                   # Contract tests
-│   └── ChainEquityToken.ts
-├── scripts/                # Deployment and utility scripts
-│   ├── deploy.ts
-│   ├── deploy-local.ts
-│   ├── gas-benchmark.ts
-│   └── verify.ts
-├── backend/                # Backend server
-│   ├── src/
-│   │   ├── api/           # API routes
-│   │   ├── db/            # Database layer
-│   │   ├── services/      # Business logic
-│   │   └── server.ts      # Express app
-│   └── __tests__/         # Integration tests
-├── hardhat.config.ts       # Hardhat configuration
-└── package.json
-```
-
-### Development Workflow
-
-1. **Write Smart Contract Code**
-   ```bash
-   # Edit contracts/ChainEquityToken.sol
-   npm run lint:sol
-   ```
-
-2. **Run Tests**
-   ```bash
-   npm test                    # All tests
-   npm test -- --grep "Stock"  # Specific tests
-   ```
-
-3. **Check Gas Usage**
-   ```bash
-   npx hardhat run scripts/gas-benchmark.ts
-   ```
-
-4. **Deploy Locally**
-   ```bash
-   npx hardhat node
-   npx hardhat run scripts/deploy-local.ts --network localhost
-   ```
-
-5. **Start Backend**
-   ```bash
-   cd backend
-   npm run dev  # Development mode with hot reload
-   ```
-
-### Code Quality
-
-```bash
-# Lint TypeScript
-npm run lint
-
-# Lint Solidity
-npm run lint:sol
-
-# Fix linting issues
-npm run lint:fix
-npm run lint:sol:fix
-
-# Run all tests
-npm test
-cd backend && npm test && cd ..
-```
+3. **WalletConnect Project ID** (Optional, for wallet connections):
+   - Sign up at [cloud.walletconnect.com](https://cloud.walletconnect.com)
+   - Create a new project
+   - Copy the Project ID
 
 ---
 
@@ -490,7 +263,7 @@ cd backend && npm test && cd ..
 ### Smart Contract Tests
 
 ```bash
-# Run all contract tests
+# Run all contract tests (61 tests)
 npm test
 
 # Run with gas reporting
@@ -503,33 +276,42 @@ npx hardhat test test/ChainEquityToken.ts
 npm test -- --grep "should execute stock split"
 ```
 
-**Test Coverage:**
+**Test Coverage (61 passing tests):**
 - ✅ Deployment and initialization
-- ✅ Wallet approval and revocation
-- ✅ Token minting
-- ✅ Transfers (approved wallets only)
-- ✅ Stock splits (forward and reverse)
-- ✅ Metadata updates (name and symbol)
-- ✅ Access control
-- ✅ Error cases and reverts
+- ✅ Wallet approval and revocation (including idempotency)
+- ✅ Token minting and burning
+- ✅ Transfer events with exact argument validation
+- ✅ Approval events with edge cases (zero, max, overwrite)
+- ✅ Stock splits (forward, reverse, compounding)
+- ✅ Symbol and name changes with validation
+- ✅ TransferBlocked event behavior on reverts
+- ✅ Access control and permissions
+- ✅ Event coverage for all operations
+- ✅ Non-existent events validation
 
 ### Backend Integration Tests
 
 ```bash
 cd backend
+
+# Run all backend tests
 npm test
+
+# Run with coverage
+npm run test:coverage
 
 # Run specific test suite
 npm test -- analytics.test.ts
 
-# Verbose output
-npm test -- --verbose
+# Watch mode
+npm run test:watch
 ```
 
-**Test Coverage:**
+**Backend Test Coverage:**
 - ✅ Cap table API endpoints
 - ✅ Analytics endpoints
 - ✅ Corporate actions API
+- ✅ Event tracking and indexing
 - ✅ Database operations
 - ✅ Service layer logic
 - ✅ Error handling
@@ -546,7 +328,207 @@ This generates a detailed gas report showing:
 - Comparison with ERC-20 standards
 - Gas target compliance
 
-See [GAS_REPORT.md](GAS_REPORT.md) for detailed results.
+See [docs/GAS_REPORT.md](docs/GAS_REPORT.md) for detailed results.
+
+### Running All Tests
+
+```bash
+# From project root
+npm test && npm --prefix backend test
+```
+
+---
+
+## CLI Usage
+
+ChainEquity includes a powerful CLI for token management operations.
+
+### Available Commands
+
+```bash
+# Get help
+npx tsx cli.ts --help
+
+# Approve wallet
+npx tsx cli.ts approve <address>
+
+# Revoke wallet
+npx tsx cli.ts revoke <address>
+
+# Mint tokens
+npx tsx cli.ts mint <address> <amount>
+
+# View cap table
+npx tsx cli.ts captable
+
+# Execute stock split
+npx tsx cli.ts split <multiplier>
+
+# Update symbol
+npx tsx cli.ts update-symbol <new-symbol>
+
+# Update name
+npx tsx cli.ts update-name <new-name>
+
+# View contract info
+npx tsx cli.ts info
+```
+
+### CLI Examples
+
+```bash
+# Approve a wallet for token transfers
+npx tsx cli.ts approve 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+
+# Mint 10,000 tokens to an approved wallet
+npx tsx cli.ts mint 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb 10000
+
+# Execute a 7-for-1 stock split
+npx tsx cli.ts split 70000
+
+# View current cap table
+npx tsx cli.ts captable
+
+# Update token symbol
+npx tsx cli.ts update-symbol CEQX
+```
+
+### CLI in Docker
+
+```bash
+# Execute CLI commands inside the Docker container
+docker exec -it chainequity-api npx tsx cli.ts --help
+docker exec -it chainequity-api npx tsx cli.ts captable
+docker exec -it chainequity-api npx tsx cli.ts mint <address> <amount>
+```
+
+**Note:** CLI operations require the `DEPLOYER_PRIVATE_KEY` in your `.env` file.
+
+For detailed CLI documentation, see [docs/CLI_GUIDE.md](docs/CLI_GUIDE.md).
+
+---
+
+## Frontend Application
+
+### Starting the Frontend
+
+```bash
+# Development mode (with hot reload)
+cd frontend
+npm run dev
+
+# Production build
+npm run build
+npm start
+```
+
+Access at: `http://localhost:3050`
+
+### Features
+
+- **Dashboard**: Overview of token metrics, recent events, and analytics
+- **Cap Table**: Real-time cap table with search, sort, and CSV export
+- **Transfer Tokens**: Interface for transferring tokens between approved wallets
+- **Mint Tokens**: Token minting interface (owner only)
+- **Approve Wallets**: Manage wallet allowlist (owner only)
+- **Corporate Actions**: Execute stock splits, update symbol/name
+- **Event History**: Complete audit trail of all blockchain events
+- **Analytics**: Charts and metrics for token distribution and activity
+
+### Wallet Connection
+
+The frontend uses RainbowKit for wallet connections:
+- MetaMask
+- WalletConnect
+- Coinbase Wallet
+- Rainbow
+- And more...
+
+### Frontend Configuration
+
+Required environment variables in `frontend/.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_CHAIN_ID=80002
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
+NEXT_PUBLIC_ALCHEMY_API_KEY=your_key
+```
+
+---
+
+## API Reference
+
+The backend exposes a comprehensive RESTful API.
+
+### Core Endpoints
+
+#### Health Check
+```bash
+GET /health
+```
+
+#### Cap Table
+```bash
+GET /api/captable              # Full cap table
+GET /api/captable/summary      # Summary statistics
+GET /api/captable/holders      # List of holders
+GET /api/captable/holder/:address  # Specific holder info
+GET /api/captable/top/:limit   # Top N holders
+GET /api/captable/export?format=csv  # CSV export
+```
+
+#### Analytics
+```bash
+GET /api/analytics/overview     # Analytics overview
+GET /api/analytics/holders      # Holder statistics
+GET /api/analytics/supply       # Supply metrics
+GET /api/analytics/distribution # Distribution analysis
+GET /api/analytics/events       # Recent events
+```
+
+#### Events
+```bash
+GET /api/events                 # All events with pagination
+GET /api/events/transfers       # Transfer events only
+GET /api/events/wallet-approvals  # Approval events
+GET /api/events/corporate       # Corporate action events
+GET /api/events/address/:address  # Events for specific address
+```
+
+#### Corporate Actions
+```bash
+GET /api/corporate/history      # Corporate action history
+GET /api/corporate/splits       # Stock split history
+GET /api/corporate/symbols      # Symbol changes
+GET /api/corporate/names        # Name changes
+```
+
+#### Issuer Operations
+```bash
+GET /api/issuer/approved        # List approved wallets
+POST /api/issuer/approve        # Approve wallet
+POST /api/issuer/revoke         # Revoke wallet
+POST /api/issuer/mint           # Mint tokens
+```
+
+### API Examples
+
+```bash
+# Get cap table
+curl http://localhost:4000/api/captable
+
+# Get holder info
+curl http://localhost:4000/api/captable/holder/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+
+# Get recent events
+curl http://localhost:4000/api/events?limit=10
+
+# Export cap table as CSV
+curl http://localhost:4000/api/captable/export?format=csv > captable.csv
+```
+
+For complete API documentation with request/response examples, see [docs/API.md](docs/API.md).
 
 ---
 
@@ -563,6 +545,11 @@ npx hardhat run scripts/deploy-local.ts --network localhost
 
 # Terminal 3: Start backend
 cd backend
+npm run build
+npm start
+
+# Terminal 4: Start frontend
+cd frontend
 npm run dev
 ```
 
@@ -579,15 +566,25 @@ npm run dev
 npx hardhat run scripts/deploy.ts --network polygonAmoy
 
 # 4. Verify contract
-npx hardhat verify --network polygonAmoy <CONTRACT_ADDRESS> "Token Name" "SYMBOL" <OWNER_ADDRESS>
+npx hardhat verify --network polygonAmoy <CONTRACT_ADDRESS> \
+  "Token Name" "SYMBOL" <OWNER_ADDRESS>
 
-# 5. Initialize database
-npx ts-node scripts/init-database.ts
+# 5. Update backend .env with contract address
 
 # 6. Start backend
 cd backend
+npm run build
+npm start
+
+# 7. Start frontend
+cd frontend
+npm run build
 npm start
 ```
+
+### Docker Deployment
+
+See [Quick Start](#quick-start-with-docker-) section above for Docker deployment instructions.
 
 ### Production Deployment
 
@@ -603,287 +600,95 @@ npm start
 - [ ] Multisig wallet configured for ownership
 - [ ] Documentation complete
 
-```bash
-# Deploy to mainnet
-npx hardhat run scripts/deploy-production.ts --network mainnet
-
-# Verify on Etherscan
-npx hardhat verify --network mainnet <CONTRACT_ADDRESS> ...
-
-# Transfer ownership to multisig
-npx hardhat run scripts/transfer-ownership.ts --network mainnet
-```
+See [docs/DISCLAIMER.md](docs/DISCLAIMER.md) for legal considerations.
 
 ---
 
-## Docker Deployment
+## Architecture
 
-### Overview
-
-ChainEquity provides a complete Docker setup for local development and testing. The Docker environment includes:
-
-- **Hardhat Node**: Local Ethereum blockchain (Port 8545)
-- **Backend API**: Express.js REST API (Port 4000)
-- **Event Indexer**: Automatic blockchain event indexing
-- **Frontend**: Next.js web application (Port 3050)
-
-All services are orchestrated with Docker Compose and communicate via a shared network.
-
-### Quick Start
-
-```bash
-# Start all services
-docker-compose -f docker-compose.full.yml up
-
-# Start in background (detached mode)
-docker-compose -f docker-compose.full.yml up -d
-
-# View logs
-docker-compose -f docker-compose.full.yml logs -f
-
-# Stop all services
-docker-compose -f docker-compose.full.yml down
-
-# Stop and remove all data (fresh start)
-docker-compose -f docker-compose.full.yml down -v
-```
-
-### Accessing Services
-
-Once running, access the services at:
-
-- **Frontend UI**: http://localhost:3050
-- **Backend API**: http://localhost:4000
-- **Hardhat RPC**: http://localhost:8545
-- **Health Check**: http://localhost:4000/health
-
-### Environment Configuration
-
-Docker uses sensible defaults, but you can customize via `.env`:
-
-```bash
-# Copy example environment file
-cp .env.example .env
-
-# Edit configuration (optional)
-# Most values have defaults that work with Docker
-nano .env
-```
-
-**Key Environment Variables for Docker:**
-
-```bash
-# Contract address (set automatically by deployment)
-TOKEN_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
-
-# Deployer key (defaults to Hardhat test account #0)
-DEPLOYER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
-# API keys (optional for local development)
-ALCHEMY_API_KEY=demo
-WALLETCONNECT_PROJECT_ID=demo
-```
-
-### Using the Application
-
-#### 1. Connect Wallet
-
-Import Hardhat test account #0 into MetaMask:
+### System Overview
 
 ```
-Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-Address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+┌─────────────────────────────────────────────────────────┐
+│                     Frontend (Next.js)                  │
+│                   http://localhost:3050                 │
+└───────────────────────┬─────────────────────────────────┘
+                        │ HTTP Requests
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│                  Backend API (Express)                  │
+│                   http://localhost:4000                 │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  REST API Routes                                │   │
+│  │  - /api/captable  - /api/analytics             │   │
+│  │  - /api/events    - /api/corporate             │   │
+│  └─────────────────────────────────────────────────┘   │
+└───────────────────────┬─────────────────────────────────┘
+                        │ Database Queries
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│              SQLite Database (Better-SQLite3)           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  Tables:                                        │   │
+│  │  - events         - balances                    │   │
+│  │  - corporate_actions - metadata                 │   │
+│  └─────────────────────────────────────────────────┘   │
+└─────────────▲─────────────────────────────▲─────────────┘
+              │                             │
+              │ Write Events                │ Read Contract State
+              │                             │
+┌─────────────┴────────────┐    ┌──────────┴──────────────┐
+│   Event Listener         │    │   RPC Queries           │
+│   (Alchemy WebSocket)    │    │   (Alchemy SDK)         │
+└─────────────┬────────────┘    └──────────┬──────────────┘
+              │                             │
+              │ Subscribe to Events         │ Contract Calls
+              │                             │
+              └──────────────┬──────────────┘
+                             ↓
+              ┌──────────────────────────────┐
+              │   Blockchain Network         │
+              │   (Ethereum/Polygon)         │
+              │  ┌────────────────────────┐  │
+              │  │  ChainEquityToken      │  │
+              │  │  Smart Contract        │  │
+              │  └────────────────────────┘  │
+              └──────────────────────────────┘
 ```
 
-Add the local network to MetaMask:
-- **Network Name**: Hardhat Local
-- **RPC URL**: http://localhost:8545
-- **Chain ID**: 31337
-- **Currency Symbol**: ETH
+### Components
 
-#### 2. Use Additional Test Accounts
+1. **Smart Contract (ChainEquityToken.sol)**
+   - ERC-20 compliant token
+   - Virtual stock split mechanism
+   - Wallet allowlist enforcement
+   - Event emission for all state changes
 
-Hardhat provides 20 test accounts. View them with:
+2. **Event Listener (Backend)**
+   - Real-time WebSocket connection to blockchain
+   - Listens for all contract events
+   - Indexes events into SQLite database
+   - Maintains balance snapshots
 
-```bash
-docker logs chainequity-hardhat | grep "Account #"
-```
+3. **Database Layer (SQLite)**
+   - Events table with full event history
+   - Balances table for current state
+   - Corporate actions table
+   - Optimized indexes for fast queries
 
-Each account has 10,000 ETH for testing.
+4. **REST API (Express)**
+   - Serves frontend and external clients
+   - Rate limiting and security headers
+   - CORS configuration
+   - Comprehensive error handling
 
-#### 3. CLI Access
+5. **Frontend (Next.js)**
+   - Modern React UI with shadcn/ui
+   - Wallet connection with RainbowKit
+   - Real-time data with React Query
+   - Responsive design with TailwindCSS
 
-Execute CLI commands inside the API container:
-
-```bash
-# List all CLI commands
-docker exec -it chainequity-api npx tsx cli.ts --help
-
-# Mint tokens
-docker exec -it chainequity-api npx tsx cli.ts mint <address> <amount>
-
-# Approve wallet
-docker exec -it chainequity-api npx tsx cli.ts approve <address>
-
-# View cap table
-docker exec -it chainequity-api npx tsx cli.ts captable
-```
-
-### Data Persistence
-
-Docker uses named volumes to persist data between restarts:
-
-- **chainequity-db-data**: SQLite database (events, balances)
-- **chainequity-hardhat-data**: Blockchain state
-- **chainequity-shared-env**: Shared environment files
-
-**Important:** When Hardhat restarts, the blockchain resets. Always use `down -v` for a clean slate:
-
-```bash
-# This clears all blockchain and database state
-docker-compose -f docker-compose.full.yml down -v
-```
-
-### Troubleshooting
-
-#### Database Conflicts
-
-If you see database errors after restarting:
-
-```bash
-# Clear all volumes and start fresh
-docker-compose -f docker-compose.full.yml down -v
-docker-compose -f docker-compose.full.yml up
-```
-
-#### View Container Logs
-
-```bash
-# All services
-docker-compose -f docker-compose.full.yml logs -f
-
-# Specific service
-docker-compose -f docker-compose.full.yml logs -f api
-docker-compose -f docker-compose.full.yml logs -f hardhat
-docker-compose -f docker-compose.full.yml logs -f frontend
-docker-compose -f docker-compose.full.yml logs -f indexer
-```
-
-#### Rebuild Containers
-
-If you modify Docker configuration or dependencies:
-
-```bash
-# Rebuild all containers
-docker-compose -f docker-compose.full.yml build
-
-# Rebuild specific service
-docker-compose -f docker-compose.full.yml build frontend
-
-# Rebuild and start
-docker-compose -f docker-compose.full.yml up --build
-```
-
-#### Port Conflicts
-
-If ports are already in use, modify `docker-compose.full.yml`:
-
-```yaml
-services:
-  frontend:
-    ports:
-      - "3051:3000"  # Change 3051 to any available port
-  api:
-    ports:
-      - "4001:4000"  # Change 4001 to any available port
-```
-
-#### Container Access
-
-```bash
-# Open shell in API container
-docker exec -it chainequity-api sh
-
-# Open shell in Hardhat container
-docker exec -it chainequity-hardhat sh
-
-# View container status
-docker ps
-```
-
-### Development Workflow with Docker
-
-1. **Make code changes** (hot reload enabled for frontend)
-2. **Rebuild if needed** (`docker-compose up --build`)
-3. **View logs** (`docker-compose logs -f`)
-4. **Reset state** (`docker-compose down -v` for fresh start)
-
-### Security Notes
-
-- Docker setup uses **Hardhat test accounts** - never use these on mainnet!
-- No sensitive keys are baked into Docker images
-- Environment variables are passed at runtime via docker-compose
-- `.dockerignore` prevents `.env` files from being copied into images
-
-### Architecture
-
-```
-┌─────────────────────────────────────────┐
-│         Docker Network                  │
-│      (chainequity-network)              │
-│                                         │
-│  ┌─────────────┐    ┌──────────────┐   │
-│  │  Hardhat    │◄───┤  API Server  │   │
-│  │  (Port 8545)│    │  (Port 4000) │   │
-│  └──────┬──────┘    └──────┬───────┘   │
-│         │                  │            │
-│         │                  │            │
-│  ┌──────▼──────┐    ┌──────▼───────┐   │
-│  │  Indexer    │    │  Frontend    │   │
-│  │  (Worker)   │    │  (Port 3050) │   │
-│  └─────────────┘    └──────────────┘   │
-│                                         │
-│  ┌─────────────────────────────────┐   │
-│  │  Persistent Volumes             │   │
-│  │  - chainequity-db-data          │   │
-│  │  - chainequity-hardhat-data     │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-```
-
----
-
-## API Documentation
-
-### REST API Endpoints
-
-The backend server exposes the following endpoints:
-
-#### Cap Table
-
-- `GET /api/captable` - Get full cap table
-- `GET /api/captable/summary` - Get summary statistics
-- `GET /api/captable/holders` - Get list of token holders
-- `GET /api/captable/holder/:address` - Get specific holder info
-- `GET /api/captable/top/:limit` - Get top N holders
-- `GET /api/captable/export?format=csv` - Export cap table
-
-#### Analytics
-
-- `GET /api/analytics/overview` - Get analytics overview
-- `GET /api/analytics/holders` - Get holder statistics
-- `GET /api/analytics/supply` - Get supply metrics
-- `GET /api/analytics/distribution` - Get distribution analysis
-- `GET /api/analytics/events` - Get recent events
-
-#### Corporate Actions
-
-- `GET /api/corporate/history` - Get corporate action history
-- `GET /api/corporate/splits` - Get stock split history
-- `GET /api/corporate/symbols` - Get symbol changes
-- `GET /api/corporate/names` - Get name changes
-
-For detailed API documentation with request/response examples, see [API.md](API.md).
+For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -891,20 +696,22 @@ For detailed API documentation with request/response examples, see [API.md](API.
 
 ChainEquity is optimized for gas efficiency:
 
-| Operation | Gas Cost | vs Standard ERC-20 |
-|-----------|----------|-------------------|
-| Transfer (existing holder) | 39,041 | -25% |
-| Transfer (new holder) | 56,153 | -23% |
-| Mint (existing) | 38,850 | -19% |
-| Mint (new) | 73,050 | -14% |
-| Stock Split | 30,246 | N/A (constant) |
+| Operation | Gas Cost | vs Standard ERC-20 | Target |
+|-----------|----------|-------------------|--------|
+| Transfer (existing holder) | 39,041 | -25% | < 100k ✅ |
+| Transfer (new holder) | 56,153 | -23% | < 100k ✅ |
+| Mint (existing) | 38,850 | -19% | < 100k ✅ |
+| Mint (new) | 73,050 | -14% | < 100k ✅ |
+| Stock Split | 30,246 | N/A (constant) | < 100k ✅ |
+| Approve Wallet | 44,100 | N/A | < 100k ✅ |
 
 **Key Advantages:**
-- ✅ All transfers stay well below 100k gas target
+- ✅ All operations stay well below 100k gas target
 - ✅ Stock splits have constant cost (independent of holder count)
 - ✅ 14-25% more efficient than standard ERC-20
+- ✅ No iteration over token holders needed
 
-For detailed gas analysis, see [GAS_REPORT.md](GAS_REPORT.md).
+For detailed gas analysis and benchmarks, see [docs/GAS_REPORT.md](docs/GAS_REPORT.md).
 
 ---
 
@@ -919,6 +726,7 @@ For detailed gas analysis, see [GAS_REPORT.md](GAS_REPORT.md).
 - ✅ Integer overflow protection (Solidity 0.8+)
 - ✅ Input validation on all functions
 - ✅ Event emission for all state changes
+- ✅ Comprehensive test coverage (61 tests)
 
 **Security Considerations:**
 - Wallet allowlist prevents unauthorized transfers
@@ -928,11 +736,22 @@ For detailed gas analysis, see [GAS_REPORT.md](GAS_REPORT.md).
 
 ### Backend Security
 
-- Rate limiting on API endpoints
-- Input validation and sanitization
-- Helmet.js for HTTP security headers
-- CORS configuration
-- Error handling without information leakage
+- ✅ Rate limiting on API endpoints
+- ✅ Input validation and sanitization
+- ✅ Helmet.js for HTTP security headers
+- ✅ CORS configuration
+- ✅ Error handling without information leakage
+- ✅ Environment variable protection
+- ✅ Database prepared statements (SQL injection prevention)
+
+### Best Practices
+
+1. **Never commit private keys or API keys**
+2. **Use environment variables for sensitive data**
+3. **Test thoroughly on testnet before mainnet**
+4. **Consider multisig wallets for contract ownership**
+5. **Regular security audits**
+6. **Monitor contract events in production**
 
 ---
 
@@ -957,6 +776,25 @@ We welcome contributions! Please follow these guidelines:
 - Keep commits atomic and well-described
 - Ensure no linting errors
 
+### Code Quality
+
+```bash
+# Lint TypeScript
+npm run lint
+
+# Lint Solidity
+npm run lint:sol
+
+# Fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+
+# Run all quality checks
+npm run quality
+```
+
 ---
 
 ## License
@@ -977,15 +815,54 @@ This software is provided for educational and demonstration purposes. Tokenized 
 - Implement proper KYC/AML procedures
 - Consider regulatory requirements in all target jurisdictions
 
-See [DISCLAIMER.md](DISCLAIMER.md) for complete legal information.
+See [docs/DISCLAIMER.md](docs/DISCLAIMER.md) for complete legal information.
 
 ---
 
-## Support
+## Documentation
 
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/chainequity/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/chainequity/discussions)
+- **API Reference**: [docs/API.md](docs/API.md)
+- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **CLI Guide**: [docs/CLI_GUIDE.md](docs/CLI_GUIDE.md)
+- **Gas Report**: [docs/GAS_REPORT.md](docs/GAS_REPORT.md)
+- **Testing Guide**: [docs/TESTING.md](docs/TESTING.md)
+- **Legal Disclaimer**: [docs/DISCLAIMER.md](docs/DISCLAIMER.md)
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Database conflicts after Hardhat restart:**
+```bash
+# Clear database
+rm -rf backend/data/chainequity.db*
+
+# Or use the reset script
+./scripts/reset-db-only.sh
+```
+
+**Port already in use:**
+```bash
+# Change ports in .env files or docker-compose.yml
+```
+
+**Tests failing:**
+```bash
+# Ensure Hardhat node is not running
+pkill -f "hardhat node"
+
+# Run tests
+npm test
+```
+
+**Docker issues:**
+```bash
+# Fresh start
+docker-compose -f docker-compose.full.yml down -v
+docker-compose -f docker-compose.full.yml up --build
+```
 
 ---
 
@@ -995,6 +872,8 @@ See [DISCLAIMER.md](DISCLAIMER.md) for complete legal information.
 - [Hardhat](https://hardhat.org/) for development environment
 - [Viem](https://viem.sh/) for Ethereum interactions
 - [Alchemy](https://alchemy.com/) for blockchain infrastructure
+- [Next.js](https://nextjs.org/) for the frontend framework
+- [shadcn/ui](https://ui.shadcn.com/) for UI components
 
 ---
 
