@@ -1090,6 +1090,156 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Expand Event Coverage and Indexing Tests for ChainEquityToken",
+        "description": "Review and update all tests to fully cover blockchain events from ChainEquityToken, verifying correct on-chain emission, arguments, edge cases, and backend indexing. Include success and failure scenarios, and align with current indexer and API behavior.",
+        "details": "Scope and alignment with codebase\n- Contract and events: `contracts/ChainEquityToken.sol:38` (WalletApproved), `contracts/ChainEquityToken.sol:41` (WalletRevoked), `contracts/ChainEquityToken.sol:44` (StockSplit), `contracts/ChainEquityToken.sol:47` (SymbolChanged), `contracts/ChainEquityToken.sol:50` (NameChanged), `contracts/ChainEquityToken.sol:53` (TransferBlocked), plus ERC20 `Transfer` and `Approval` inherited. Mint and burn surface as `Transfer` with zero address semantics.\n- Indexing: `backend/src/services/indexer.service.ts:146` classifies mints as `eventType: 'Mint'` when `from === ZeroAddress`; stores other transfers as `Transfer`. Approval is not indexed. `backend/src/services/eventListener.ts` stores Transfer/WalletApproved/WalletRevoked/StockSplit/SymbolChanged/NameChanged. DB schema supports `Transfer|Mint|WalletApproved|WalletRevoked|StockSplit|SymbolChanged|NameChanged|TransferBlocked` (backend/src/db/schema.sql:13).\n- API for verification: `backend/src/api/events.routes.ts` provides `/api/events`, `/api/events/transfers`, `/api/events/wallet-approvals`, `/api/events/corporate`, `/api/events/address/:address`.\n- Current tests: root `test/ChainEquityToken.ts` (node:test + viem) and `backend/test/ChainEquityToken.test.ts` (mocha/chai + viem) validate some flows but don’t assert event args comprehensively or backend indexing.\n\nImplementation plan\n1) Contract unit tests (root hardhat tests)\n- File: update `test/ChainEquityToken.ts` to add explicit event assertions using `viem.assertions.emitWithArgs`:\n  - Transfer: normal transfer emits `Transfer(from, to, amount)` with exact args.\n  - Mint: `mint(to, amount)` emits `Transfer(0x0, to, amount)` and updates supply; also assert indexer’s mint classification at backend layer below.\n  - Burn: `transfer(0x0, amount)` burns if allowed by OZ v5/_update override; assert `Transfer(from, 0x0, amount)` and supply decreases. If OZ disallows, assert revert and no events (document chosen behavior).\n  - Approval: `approve(spender, amount)` emits `Approval(owner, spender, amount)` and sets allowance; add increase/decrease allowance edge tests.\n  - WalletApproved/WalletRevoked: assert emission with exact wallet arg; add idempotency: re-approve approved wallet and re-revoke revoked wallet do not emit events (receipt logs unchanged length).\n  - StockSplit: `executeSplit(multiplier)` emits with correct multiplier and `newSplitMultiplier` values; test invalid multipliers `0` and `10000` (BASIS_POINTS) revert with no events; test compounding math.\n  - SymbolChanged/NameChanged: assert exact old/new argument values and input validation (empty, symbol length > 11) reverts with no events.\n  - TransferBlocked negative: perform blocked transfer (non-allowlisted recipient or sender) and assert the transaction reverts and no events are emitted in the final receipt (clarifies that `TransferBlocked` is not observable post-revert by design). Also assert that successful transfers do not emit `TransferBlocked`.\n- Keep test style consistent with file’s framework (node:test + viem). Use `await viem.assertions.emitWithArgs(...)` for positive cases and `await assert.rejects(...)` for reverts, then fetch receipt/logs to confirm absence.\n\n2) Backend API/indexing tests (Jest integration)\n- Mount events router for tests: update `backend/src/__tests__/testUtils.ts:112` to include `createEventsRouter` under `/api/events` so tests can query indexed data.\n- Add new Jest integration tests:\n  - `backend/src/__tests__/integration/events.api.test.ts`:\n    - Seed DB with a realistic mix: Mint (from zero) and Transfer, WalletApproved, WalletRevoked, StockSplit, SymbolChanged, NameChanged. Use `db.insertEvent` with event_type mirroring indexer outputs (Mint vs Transfer). Verify `/api/events` pagination and `/api/events?eventType=Mint|Transfer|WalletApproved|WalletRevoked|StockSplit|SymbolChanged|NameChanged` return correct types, fields, and sort order.\n    - Verify `/api/events/address/:address` aggregates events for a specific address and excludes unrelated events.\n    - Assert API rejects invalid `eventType` (Approval or Burn) with 400, reflecting current schema.\n  - `backend/src/__tests__/integration/indexer.classification.test.ts`:\n    - If feasible in CI, spin up local Hardhat node and deploy `ChainEquityToken` (reusing hardhat/viem). Start a short-lived `IndexerService` (backend/src/services/indexer.service.ts) against `config.useLocalNetwork=true` and the deployed contract.\n    - Execute: approve two wallets, mint to wallet A, transfer A->B, symbolic change and stock split, attempt blocked transfer (expected revert). Wait for indexer to insert. Assertions against DB (via `db.getAllEvents`) and API:\n      - Mint appears as `event_type: 'Mint'` with `from_address` zero and correct amount.\n      - Transfer appears as `event_type: 'Transfer'` with proper addresses and amount.\n      - No `TransferBlocked` record exists for the failed transfer (revert rolls back logs), and no extraneous events on failure paths.\n      - Corporate actions are present in both `events` and `corporate_actions` with correct metadata.\n- Keep DB isolation per test using `createTestDatabase()` and `cleanupTestDatabase()`.\n\n3) Mocha/Chai test alignment (backend/test)\n- In `backend/test/ChainEquityToken.test.ts`, replace generic “logs length > 0” checks with explicit decoding and argument assertions for the same event matrix as root tests, matching that file’s Mocha/Chai style. Ensure consistency of expectations for negative cases (no events on revert; idempotent state operations don’t emit).\n\n4) Documentation and fixtures\n- Add brief comments in tests explaining zero-address semantics: Mint = Transfer from zero; Burn = Transfer to zero (if allowed by underlying OZ v5). Note that Approval and Burn are not indexed by backend by design; covered at on-chain level only.\n- Where event types diverge between on-chain and backend classification (Mint vs Transfer), assert both layers appropriately: on-chain Transfer(from=0x0,...) and backend `event_type: 'Mint'`.\n\nKey references for implementation\n- Contract: `contracts/ChainEquityToken.sol:141`, `contracts/ChainEquityToken.sol:175`, `contracts/ChainEquityToken.sol:243`, `contracts/ChainEquityToken.sol:271`.\n- Indexer: `backend/src/services/indexer.service.ts:146`, `backend/src/services/indexer.service.ts:496` saveEvent, `backend/src/services/indexer.service.ts:567` sync historical, `backend/src/services/eventListener.ts:24` subscriptions.\n- API: `backend/src/api/events.routes.ts:16` all events endpoint and `eventType` validation.\n- DB schema: `backend/src/db/schema.sql:13` event type check.\n\nNotes on non-existent events in this codebase\n- ComplianceOfficerAdded/ComplianceOfficerRemoved are not present in the current ABI or indexer. Add negative tests that confirm these topics are absent in the contract ABI and that API validation rejects them as event types. If these roles are added in the future, expand both contract and indexer plus DB schema before enabling positive tests.\n",
+        "testStrategy": "Verification checklist\n- Unit (Hardhat) tests\n  - Run `npm test`.\n  - Confirm new tests in `test/ChainEquityToken.ts` pass and assert exact event args for: Transfer, Mint (as Transfer from zero), Burn (Transfer to zero if supported), Approval, WalletApproved, WalletRevoked, StockSplit, SymbolChanged, NameChanged. Validate negative cases: blocked transfers and invalid inputs do not emit events.\n  - Ensure idempotent approve/revoke do not emit duplicate events (compare log counts or use viem assertions for non-emission by executing and checking receipt logs length unchanged).\n- Backend integration (Jest)\n  - Run `npm --prefix backend test`.\n  - events.api.test: Validate `/api/events` returns correct types, fields, pagination, and filtering; verify address-scoped queries; confirm invalid event type (Approval/Burn/ComplianceOfficer*) returns 400.\n  - indexer.classification.test (if enabled): Start local Hardhat + IndexerService, perform mint/transfer/split/symbol flows, then assert DB contains: Mint events for zero-from transfers, Transfer events for normal transfers, WalletApproved/Revoked, StockSplit, SymbolChanged/NameChanged, and no TransferBlocked entries for reverted txs. Verify values, addresses, and block/timestamp presence.\n- Cross-layer consistency\n  - For mint operations, assert both on-chain Transfer(from=zero) and backend `event_type: 'Mint'` exist and agree on amount and addresses.\n  - For burn (if supported), assert backend records it as `Transfer` with `to_address` zero (no separate Burn type).\n- Coverage and regression\n  - Ensure new tests raise coverage around event logic paths and failure scenarios. Run `run-tests.sh` to execute both suites locally. Track flakiness by avoiding timing assumptions; use DB seeding or explicit waits for indexer e2e.\n",
+        "status": "pending",
+        "dependencies": [
+          3,
+          5,
+          9,
+          15
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Repository scan to locate contracts, backend, API, DB, and test files",
+            "description": "List and confirm locations of ChainEquityToken contract, indexer service, event listener, events API routes, DB schema, and both root and backend tests to align planned coverage with actual code.",
+            "dependencies": [],
+            "details": "Use ripgrep to enumerate files: contracts/ChainEquityToken.sol, test/ChainEquityToken.ts, backend/src/services/indexer.service.ts, backend/src/services/eventListener.ts, backend/src/api/events.routes.ts, backend/src/db/schema.sql, backend/test/ChainEquityToken.test.ts, and any backend/src/__tests__ integration tests. Capture paths for follow-up reads.",
+            "status": "pending",
+            "testStrategy": "Verify file existence and note their paths; record key line anchors to speed subsequent reads."
+          },
+          {
+            "id": 2,
+            "title": "Grep event names across codebase to map declarations and usage",
+            "description": "Search for WalletApproved, WalletRevoked, StockSplit, SymbolChanged, NameChanged, TransferBlocked, Transfer, and Approval to identify Solidity declarations and backend handlers.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use ripgrep on contracts/ and backend/src/ to find event definitions, indexer classification points (e.g., Mint when from==ZeroAddress), and API validation for event types. Note line numbers for primary references.",
+            "status": "pending",
+            "testStrategy": "Produce a quick reference of matches (file:line) to guide precise assertions in tests."
+          },
+          {
+            "id": 3,
+            "title": "Read key implementation files to understand semantics and indexing",
+            "description": "Open and review ChainEquityToken.sol and backend indexer/API/schema to confirm event payloads, classification rules, and exposed endpoints.",
+            "dependencies": [
+              2
+            ],
+            "details": "Examine: contracts/ChainEquityToken.sol around lines 38–60 and functional sections; backend/src/services/indexer.service.ts (Mint vs Transfer classification, saveEvent), backend/src/services/eventListener.ts (subscriptions), backend/src/api/events.routes.ts (routes and validators), backend/src/db/schema.sql (event_type CHECK and corporate tables).",
+            "status": "pending",
+            "testStrategy": "Summarize behaviors: which events are emitted on-chain, which are stored/indexed, and which are accessible via API; align planned tests accordingly."
+          },
+          {
+            "id": 4,
+            "title": "Add unit tests for ERC20 Transfer and Mint (zero-address source) classification",
+            "description": "Expand root Hardhat tests to assert exact Transfer args and cover Mint as Transfer from zero; prepare backend expectations for Mint classification.",
+            "dependencies": [
+              3
+            ],
+            "details": "In test/ChainEquityToken.ts, add viem emitWithArgs assertions for: normal Transfer, Mint emitting Transfer(0x0,to,amount); verify totalSupply changes. Plan backend integration to expect event_type Mint when from==ZeroAddress.",
+            "status": "pending",
+            "testStrategy": "Run unit tests; in backend integration, seed DB and assert /api/events and /api/events/transfers reflect Mint vs Transfer properly."
+          },
+          {
+            "id": 5,
+            "title": "Expand Approval tests including allowance edge cases; assert non-indexing",
+            "description": "Add Approval event assertions and increase/decrease allowance edge cases; ensure backend/API does not accept Approval as eventType.",
+            "dependencies": [
+              3
+            ],
+            "details": "In test/ChainEquityToken.ts, assert Approval(owner,spender,amount) and allowance updates; include zero and max values. In backend tests, expect 400 for eventType=Approval and confirm schema lacks Approval type.",
+            "status": "pending",
+            "testStrategy": "On-chain: emitWithArgs and state checks. Backend: API request with eventType=Approval returns 400 and no DB records."
+          },
+          {
+            "id": 6,
+            "title": "Cover Burn semantics (Transfer to zero) or revert and negative indexing",
+            "description": "Implement tests for burn behavior via Transfer to zero if supported, or assert revert with no events; confirm backend has no Burn event type.",
+            "dependencies": [
+              3
+            ],
+            "details": "In unit tests, attempt burn and validate either Transfer(to=0x0) with supply decrease or revert + no logs; document OZ-based behavior. Backend integration confirms schema/API rejects Burn as eventType.",
+            "status": "pending",
+            "testStrategy": "Check receipt logs length and topics on-chain; assert API 400 for eventType=Burn and absence in DB."
+          },
+          {
+            "id": 7,
+            "title": "Test WalletApproved and WalletRevoked events including idempotency",
+            "description": "Ensure allowlist events emit with correct args and that re-approving/re-revoking does not emit additional logs.",
+            "dependencies": [
+              3
+            ],
+            "details": "Unit tests: emitWithArgs for both events, then repeat calls and verify receipt logs unchanged length. Backend tests: seed and query /api/events/wallet-approvals and validate payloads and counts.",
+            "status": "pending",
+            "testStrategy": "On-chain: strict arg assertions + unchanged log count on idempotent operations. Backend: API returns only unique events as seeded."
+          },
+          {
+            "id": 8,
+            "title": "Comprehensive StockSplit tests with invalid multipliers and compounding",
+            "description": "Assert StockSplit event args, state changes, and that invalid multipliers revert without emitting events; test compounding math across multiple splits.",
+            "dependencies": [
+              3
+            ],
+            "details": "Unit tests: valid multiplier emits with correct values and updates splitMultiplier; invalid 0 and max/BASIS_POINTS reverts. Backend tests: events show under /api/events and corporate endpoints with correct metadata.",
+            "status": "pending",
+            "testStrategy": "On-chain: emitWithArgs and post-state checks; Backend: API returns corporate action rows with expected fields and ordering."
+          },
+          {
+            "id": 9,
+            "title": "Validate SymbolChanged and NameChanged events and input constraints",
+            "description": "Assert old/new values in events, state updates, and rejections for invalid inputs (empty name, symbol length > 11) without events.",
+            "dependencies": [
+              3
+            ],
+            "details": "Unit tests: emitWithArgs for symbol and name changes, then negative cases with revert + no logs. Backend tests: corporate endpoints include these events and exclude invalid ones.",
+            "status": "pending",
+            "testStrategy": "On-chain: event args + state validation; Backend: query /api/events/corporate and check records present with correct data."
+          },
+          {
+            "id": 10,
+            "title": "Confirm TransferBlocked behavior: no logs on revert; none on success",
+            "description": "Test that blocked transfers revert and do not leave observable TransferBlocked logs; successful transfers never emit TransferBlocked.",
+            "dependencies": [
+              3
+            ],
+            "details": "Unit tests: attempt non-allowlisted transfer -> assert revert + no logs; allowed transfer -> only Transfer event. Backend: verify schema allows TransferBlocked type but indexer/API do not produce it on reverted txs.",
+            "status": "pending",
+            "testStrategy": "Inspect transaction receipt logs; query backend DB/API for absence of TransferBlocked entries for failed txs."
+          },
+          {
+            "id": 11,
+            "title": "Negative tests for non-existent ComplianceOfficer events and API validation",
+            "description": "Ensure ComplianceOfficerAdded/Removed are absent in ABI and that API rejects them as event types, maintaining alignment with current schema and indexer.",
+            "dependencies": [
+              3
+            ],
+            "details": "Grep ABI and contracts to confirm absence; backend tests request /api/events?eventType=ComplianceOfficerAdded/Removed and expect 400 due to validation and schema constraints.",
+            "status": "pending",
+            "testStrategy": "Contract grep returns no matches; API responds 400 with validation error; no DB rows for these types."
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Frontend Accordion for Approved Wallets",
+        "description": "Add a collapsible Accordion under the Manage Wallet UI that lists all approved wallet addresses, integrates with the existing approved wallets API, supports search/filter, copy-to-clipboard, and optional approval timestamps with a \"recently added\" indicator.",
+        "details": "Context and stack: Next.js App Router (frontend/), React 19, Tailwind, shadcn/ui components, lucide-react icons, wagmi. Data fetching uses React Query via QueryClientProvider (see frontend/components/providers.tsx). Backend exposes REST endpoints including GET /api/issuer/approved and events endpoints (see backend/src/api/issuer.routes.ts and backend/src/api/events.routes.ts). Use NEXT_PUBLIC_API_URL (fallback http://localhost:4000) for API base (see patterns in frontend/app/transfer/page.tsx and components/sections/MintSection.tsx). Implementation plan:\n\n1) Component structure\n- Create client component frontend/components/sections/ApprovedWalletsAccordion.tsx (\"use client\").\n- Render a Card with a header row that toggles expand/collapse (local state `isOpen`). Include count and Chevron icon from lucide-react.\n- When open, show: search input, results summary, paginated list (table) of addresses with copy-to-clipboard per row, and optional approval timestamps.\n\n2) Data fetching\n- Use React Query for data:\n  - useQuery(['approvedWallets'], () => fetch(`${API_URL}/api/issuer/approved`).then(r => r.json())) with `staleTime: 60_000`, `refetchInterval: 10_000` to reflect near real-time changes (compatible with auto-indexer).\n  - Shape: { success: true, data: { wallets: string[], count: number } } per backend/src/api/issuer.routes.ts.\n- Optional timestamps: Fetch recent approval/revocation events to compute approval timestamps for listed wallets:\n  - useQuery(['walletApprovalEvents', approvedCount], () => fetch(`${API_URL}/api/events/wallet-approvals?limit=${Math.max(approvedCount*4, 200)}`).then(r => r.json()), { enabled: approvedCount > 0 }).\n  - Events shape per backend/src/api/events.routes.ts and db schema (backend/src/db/schema.sql): each event has event_type ('WalletApproved'/'WalletRevoked'), to_address (approved wallet for approvals), from_address (revoked wallet for revocations), timestamp.\n  - Build a Map<string, number> approvedAt by iterating events newest→oldest: for each address that is in the current approved set, assign its latest WalletApproved.timestamp and skip if we encounter a WalletRevoked after that.\n\n3) UI/UX details\n- Place the Accordion below the existing Manage Wallet Card and informational Alert in frontend/app/approve/page.tsx by importing and rendering <ApprovedWalletsAccordion />.\n- Use shadcn/ui components for consistency:\n  - Card, CardHeader, CardContent, Button, Input, Badge, Table, Pagination (reuse frontend/components/ui/pagination.tsx).\n  - Icons: ChevronDown/ChevronRight for expand state, Copy for copy-to-clipboard, optional Clock for timestamps.\n- Search/filter: Add a text Input above the list. Implement case-insensitive substring matching; debounce input by ~300ms via useEffect + setTimeout. Memoize filtered results with useMemo.\n- Pagination: Client-side paginate filtered results, default 50 per page. Use existing Pagination component and show totalItems from backend count. Maintain controlled state: currentPage, itemsPerPage.\n- Copy-to-clipboard: Use the pattern from frontend/components/sections/DashboardSection.tsx (navigator.clipboard.writeText + local \"✓\" confirmation or a sonner toast). Provide aria-label on the copy Button.\n- Formatting: Display addresses monospace, truncated (0x1234…abcd) with full copy support. Include a small Badge or dot indicator (e.g., green \"New\") for addresses with approvedAt within last 24h.\n- Loading and error states: Show a lightweight skeleton or text placeholders while queries load. Show an Alert on error with retry button (queryClient.invalidateQueries).\n- Accessibility: The toggle Button sets aria-expanded and aria-controls; ensure focus styles on interactive elements; tab-order friendly controls.\n- Performance: Avoid re-computing filters and maps via useMemo; cancel in-flight fetch via AbortController; avoid rendering full list by paginating. Do not add new packages.\n\n4) File changes\n- Add: frontend/components/sections/ApprovedWalletsAccordion.tsx implementing the above UI.\n- Update: frontend/app/approve/page.tsx to import and render ApprovedWalletsAccordion below the existing Alert, maintaining current styling.\n- Optional (if preferred): Add a tiny wrapper in frontend/components/ui/accordion.tsx for consistent semantics, but not required since package installs are restricted; a simple stateful collapse is acceptable.\n\n5) Types and utilities\n- Define a local TypeScript type for the approved wallets response: type ApprovedWalletsResponse = { success: boolean; data: { wallets: string[]; count: number } }.\n- Utility helpers: formatAddress(addr) => `${addr.slice(0,6)}...${addr.slice(-4)}`. Reuse copy UX approach from DashboardSection.\n\n6) Acceptance criteria\n- Accordion renders under Manage Wallet on /approve and toggles open/closed.\n- When open, it fetches and displays the list of approved addresses with total count.\n- Search and pagination work together and performantly on large lists.\n- Copy-to-clipboard works with clear visual feedback.\n- If approval event data is available, each row optionally shows \"Approved at\" (local time) and a \"New\" indicator for the last 24h.\n- Graceful loading, empty, and error states.\n- No new external dependencies introduced.\n",
+        "testStrategy": "Manual and integration verification without new dependencies:\n\nEnvironment setup\n- Start backend and indexer (ensure events are being recorded):\n  - In backend/: `npm install` (if not already), `npm run dev` (default port 4000). Confirm /api/issuer/approved and /api/events/wallet-approvals respond.\n- Start frontend: In frontend/: `npm install` (if not already), `npm run dev` (default port 3050), with NEXT_PUBLIC_API_URL=http://localhost:4000.\n\nFunctional checks on /approve\n1) Placement and basic UX\n- Confirm the Accordion appears under the Manage Wallet card and Alert.\n- Toggle expand/collapse; verify aria-expanded updates and content mounts/unmounts.\n\n2) Data loading and list rendering\n- With no approved wallets, verify an empty state message and count=0.\n- Approve a few wallets (via API: POST /api/issuer/approve or CLI/script), refresh or wait for auto-refetch; confirm addresses appear, count matches backend.\n\n3) Search/filter and pagination\n- Approve >60 wallets (or simulate by adding many locally if available). Verify default page shows 50 items, pagination controls navigate pages correctly, and count text updates.\n- Use the search input to filter by substring; verify debounce (~300ms) and that pagination re-calculates over filtered results.\n\n4) Copy-to-clipboard and formatting\n- Click copy icon on a row; verify clipboard contains the full address. Confirm UI feedback (✓ or toast) displays and clears after ~2s.\n- Verify truncated display format matches 0xNNNN…NNNN while copying the full address.\n\n5) Approval timestamps and “New” indicator\n- After approving a wallet, verify approvedAt shows (if events endpoint returns data) and that a “New” indicator appears within 24h, disappearing after the threshold or on older entries.\n- Revoke a wallet and re-approve; verify timestamps reflect the latest approval and the address only appears when approved.\n\n6) Error and loading states\n- Temporarily stop backend or point API URL incorrectly; verify error Alert with retry is shown.\n- Restore backend; verify successful refetch restores list.\n\n7) Accessibility and responsiveness\n- Navigate with keyboard (Tab, Enter/Space on toggle). Confirm focus ring visibility and accessible labels (copy button, toggle button). Check on mobile viewport that layout wraps correctly and table remains readable.\n",
+        "status": "pending",
+        "dependencies": [
+          9,
+          11
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -1102,7 +1252,7 @@
       ],
       "created": "2025-11-05T22:01:04.500Z",
       "description": "Tasks for master context",
-      "updated": "2025-11-07T01:30:13.350Z"
+      "updated": "2025-11-09T23:55:32.571Z"
     }
   }
 }

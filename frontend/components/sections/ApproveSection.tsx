@@ -11,12 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { ApprovedWalletsTable } from './ApprovedWalletsTable';
 
 export function ApproveSection() {
   const { isConnected } = useAccount();
   const { address: contractAddress, abi } = useContract();
   const [walletAddress, setWalletAddress] = useState('');
   const [lastAction, setLastAction] = useState<'approve' | 'revoke' | null>(null);
+  const [processedHash, setProcessedHash] = useState<string | null>(null);
 
   const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
   const { isLoading: isConfirming, isSuccess, error: txError } = useWaitForTransactionReceipt({ hash });
@@ -33,7 +35,17 @@ export function ApproveSection() {
 
   // Handle transaction success
   useEffect(() => {
-    if (isSuccess && hash) {
+    if (isSuccess && hash && hash !== processedHash && lastAction) {
+      // Mark this hash as processed to prevent duplicate toasts
+      setProcessedHash(hash);
+
+      // Dismiss the loading toast
+      if (lastAction === 'approve') {
+        toast.dismiss('approve-tx');
+      } else if (lastAction === 'revoke') {
+        toast.dismiss('revoke-tx');
+      }
+
       refetchApproval();
       const actionText = lastAction === 'approve' ? 'approved' : 'revoked';
       toast.success(`Wallet ${actionText} successfully!`, {
@@ -41,21 +53,25 @@ export function ApproveSection() {
       });
       setLastAction(null);
     }
-  }, [isSuccess, hash, lastAction, refetchApproval]);
+  }, [isSuccess, hash, lastAction, processedHash, refetchApproval]);
 
   // Handle transaction errors
   useEffect(() => {
-    if (writeError) {
+    if (writeError || txError) {
+      // Dismiss the loading toast
+      if (lastAction === 'approve') {
+        toast.dismiss('approve-tx');
+      } else if (lastAction === 'revoke') {
+        toast.dismiss('revoke-tx');
+      }
+
+      const error = writeError || txError;
       toast.error('Transaction failed', {
-        description: writeError.message,
+        description: error?.message,
       });
+      setLastAction(null);
     }
-    if (txError) {
-      toast.error('Transaction failed', {
-        description: txError.message,
-      });
-    }
-  }, [writeError, txError]);
+  }, [writeError, txError, lastAction]);
 
   const handleApprove = async () => {
     if (!isAddress(walletAddress)) {
@@ -65,6 +81,7 @@ export function ApproveSection() {
 
     try {
       setLastAction('approve');
+      setProcessedHash(null); // Reset processed hash for new transaction
       toast.loading('Approving wallet...', { id: 'approve-tx' });
       writeContract({
         address: contractAddress,
@@ -73,11 +90,11 @@ export function ApproveSection() {
         args: [walletAddress as Address],
       });
     } catch (err) {
+      toast.dismiss('approve-tx');
       toast.error('Failed to approve wallet', {
         description: err instanceof Error ? err.message : 'Unknown error',
       });
-    } finally {
-      toast.dismiss('approve-tx');
+      setLastAction(null);
     }
   };
 
@@ -89,6 +106,7 @@ export function ApproveSection() {
 
     try {
       setLastAction('revoke');
+      setProcessedHash(null); // Reset processed hash for new transaction
       toast.loading('Revoking wallet...', { id: 'revoke-tx' });
       writeContract({
         address: contractAddress,
@@ -97,11 +115,11 @@ export function ApproveSection() {
         args: [walletAddress as Address],
       });
     } catch (err) {
+      toast.dismiss('revoke-tx');
       toast.error('Failed to revoke wallet', {
         description: err instanceof Error ? err.message : 'Unknown error',
       });
-    } finally {
-      toast.dismiss('revoke-tx');
+      setLastAction(null);
     }
   };
 
@@ -172,6 +190,11 @@ export function ApproveSection() {
           </ul>
         </AlertDescription>
       </Alert>
+
+      {/* Approved Wallets List */}
+      <div className="mt-6">
+        <ApprovedWalletsTable />
+      </div>
     </div>
   );
 }
